@@ -2,9 +2,15 @@
 
 Custom blocks and examples for the BioWearables workshop, using Brilliant Labs' b.Board 1.1, and their new MakeCode IDE.
 
+
+
+[[_TOC_]]
+
+----
+
 ## Using the MakeCode IDE
 
-### Getting started
+#### Getting started
 
 There are advantages to using **Chrome** as a browser, particularly for debugging and flashing programs to the micro:bit more seamlessly (see [below](#recommended-browser)).
 
@@ -12,7 +18,9 @@ The Brilliant Labs IDE for the new b.Board (v1.1) is at [code.brilliantlabs.ca](
 
 Make sure to use the link above and not the older IDE at [~~bboard.now.sh~~](https://bboard.now.sh/) which was developed for the first version of the b.Board (v1.0). The new IDE should have three `Advanced` libraries called `BBoard_Mic`, `BBoard_Motor` and `BBoard_Music`.
 
-### Storing and retrieving projects
+----
+
+#### Storing and retrieving projects
 
 From the initial page you can create or import projects. To store and retrieve them, you can:
 
@@ -51,7 +59,9 @@ Finally, Typescript files can be copied directly into the Javascript editor. Thi
 
 ![Switch to Javascript view](images/IDE_toggle_blocks.png)
 
-### Running a program on the micro:bit
+----
+
+#### Running a program on the micro:bit
 
 From the IDE you can save your project to your computer as a hex file. You can then transfer that file to the micro:bit over USB. This process can be shortened somewhat by pressing `Download` and then right clicking to `Save Link As` directly to the micro:bit. It remains a multi-step process though.
 
@@ -69,11 +79,15 @@ You should now see the following which allows you to flash the micro:bit directl
 
 ![Regular download](images/IDE_download_2.png)
 
-### Updating the micro:bit firmware
+----
+
+#### Updating the micro:bit firmware
 
 Instructions and up to date versions of the firmware are available [here](https://microbit.org/get-started/user-guide/firmware/).
 
-### Pairing a micro:bit
+----
+
+#### Pairing a micro:bit
 
 There are extensive instructions on how to pair a micro:bit [here](https://makecode.microbit.org/v0/reference/bluetooth/bluetooth-pairing).
 
