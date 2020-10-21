@@ -75,6 +75,6 @@ Instructions and up to date versions of the firmware are available [here](https:
 
 ### Pairing a micro:bit
 
-There are extensive instructions on how to pair a micro:bit [here](https://makecode.microbit.org/v0/reference/bluetooth/bluetooth-pairing)
+There are extensive instructions on how to pair a micro:bit [here](https://makecode.microbit.org/v0/reference/bluetooth/bluetooth-pairing).
 
 In Chrome however, and with the micro:bit plugged in through USB, it was a simple process launched by clicking on the three dots on the side of the `Download` button.
