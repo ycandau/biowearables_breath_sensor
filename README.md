@@ -27,7 +27,7 @@ From the initial page you can create or import projects. To store and retrieve t
 - Use the built-in browser system (stored locally in the browser history).
 - Import hex files.
 - Import repositories from Github.
-- Cut and paste TypeScript files into the Javascript editor.
+- Cut and paste TypeScript files into the JavaScript editor.
 
 The built-in system works fine, but there is no versioning and everything is lost if you erase your browser history.
 
@@ -35,11 +35,11 @@ Hex files can contain both libraries for custom blocks and a main program. They 
 
 The IDE also features GitHub integration, for instance to commit changes directly to a remote repository. But since we are working on GitLab I have not used the functionality much.
 
-Finally, TypeScript files can be copied directly into the Javascript editor. This repository has examples available in the [./typescript/](./typescript/) folder.
+Finally, TypeScript files can be copied directly into the JavaScript editor. This repository has examples available in the [./typescript/](./typescript/) folder.
 
-- Switch to `Javascript` view in an existing project.
+- Switch to `JavaScript` view in an existing project.
 
-![Switch to Javascript view](images/IDE_toggle_javascript.png)
+![Switch to JavaScript view](images/IDE_toggle_javascript.png)
 
 - Open the `Explorer` on the side.
 
@@ -57,7 +57,7 @@ Finally, TypeScript files can be copied directly into the Javascript editor. Thi
 - And code for a program goes into `main.ts`.
 - Switching back to `Blocks` view renders the program into blocks.
 
-![Switch to Javascript view](images/IDE_toggle_blocks.png)
+![Switch to JavaScript view](images/IDE_toggle_blocks.png)
 
 ----
 
