@@ -31,11 +31,11 @@ From the initial page you can create or import projects. To store and retrieve t
 
 The built-in system works fine, but there is no versioning and everything is lost if you erase your browser history.
 
-Hex files can contain both libraries for custom blocks and a main program. They are convenient as single items that can be directly imported to setup a project. This repository has examples available in the [hex](./hex/) folder.
+Hex files can contain both libraries for custom blocks and a main program. They are convenient as single items that can be directly imported to setup a project. This repository has examples available in the [./hex/](./hex/) folder.
 
 The IDE also features GitHub integration, for instance to commit changes directly to a remote repository. But since we are working on GitLab I have not used the functionality much.
 
-Finally, TypeScript files can be copied directly into the Javascript editor. This repository has examples available in the [typescript](./typescript/) folder.
+Finally, TypeScript files can be copied directly into the Javascript editor. This repository has examples available in the [./typescript/](./typescript/) folder.
 
 - Switch to `Javascript` view in an existing project.
 
