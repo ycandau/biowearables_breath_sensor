@@ -30,9 +30,23 @@ The IDE also features GitHub integration, for instance to commit changes directl
 Finally, Typescript files can be copied directly into the Javascript editor. This repository has examples available in the [typescript](./typescript/) folder.
 
 * Switch to `Javascript` view in an existing project.
+
+![Switch to Javascript view](images/IDE - Toggle - JS.png)
+
 * Open the `Explorer` on the side.
+
+![Open the explorer](images/IDE - Explorer 1.png)
+
 * Click `+` to add `Add custom blocks`.
+
+![Add custom blocks](images/IDE - Explorer 2.png)
+
 * You should see a new `custom.ts` file which can be used for libraries.
+
+![Add custom blocks](images/IDE - Explorer 3.png)
+
 * You can now copy code for a library into `custom.ts`.
 * And code for a program goes into `main.ts`.
 * Switching back to `Blocks` view renders the program into blocks.
+
+![Switch to Javascript view](images/IDE - Toggle - Blocks.png)
