@@ -31,25 +31,25 @@ Finally, Typescript files can be copied directly into the Javascript editor. Thi
 
 - Switch to `Javascript` view in an existing project.
 
-![Switch to Javascript view](images/IDE - Toggle - JS.png)
+![Switch to Javascript view](images/IDE_toggle_javascript.png)
 
 - Open the `Explorer` on the side.
 
-![Open the explorer](images/IDE - Explorer 1.png)
+![Open the explorer](images/IDE_explorer_1.png)
 
 - Click `+` to add `Add custom blocks`.
 
-![Add custom blocks](images/IDE - Explorer 2.png)
+![Add custom blocks](images/IDE_explorer_2.png)
 
 - You should see a new `custom.ts` file which can be used for libraries.
 
-![Add custom blocks](images/IDE - Explorer 3.png)
+![Add custom blocks](images/IDE_explorer_3.png)
 
 - You can now copy code for a library into `custom.ts`.
 - And code for a program goes into `main.ts`.
 - Switching back to `Blocks` view renders the program into blocks.
 
-![Switch to Javascript view](images/IDE - Toggle - Blocks.png)
+![Switch to Javascript view](images/IDE_toggle_blocks.png)
 
 ### Running a program on the micro:bit
 
@@ -63,11 +63,11 @@ This can be simplified to a single click of the `Download` button if you do the 
 
 Instead of the regular `Download` button:
 
-![Regular download](images/IDE - Download.png)
+![Regular download](images/IDE_download_1.png)
 
 You should now see the following which allows you to flash the micro:bit directly:
 
-![Regular download](images/IDE - Download 2.png)
+![Regular download](images/IDE_download_2.png)
 
 ### Updating the micro:bit firmware
 
