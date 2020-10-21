@@ -61,7 +61,7 @@ namespace util {
     neopixel: 'You need to create a Neopixel.',
     breath: 'You need to create a breath sensor.',
     motor: 'You need to create a motor.',
-    radio: 'You need to create a radio listener providing breath data.',
+    radio: 'You need to create a radio receiver providing breath data.',
     mapping: 'You need to create a mapping set.'
   }
 
@@ -703,7 +703,7 @@ namespace bioW_Neopixel {
 //% icon="\uf08b" sign-out
 // icon="\uf289" mixcloud
 // icon="\uf21e" heartbeat
-// groups=["Start block", "Sensor input", "Target breath"]
+// groups=["Start block", "Sensor data", "Target breath"]
 // @problem The space in the group name causes an issue.
 // But it works by removing the line (// vs //%).
 
@@ -785,7 +785,7 @@ namespace bioW_Breath {
     }
 
     /**
-     * Read the sensor input on a separate forever loop
+     * Read the sensor data on a separate forever loop
      * for better consistency in timing and to avoid issues
      * such as multiple readings in the basic forever loop.
      */
@@ -848,7 +848,7 @@ namespace bioW_Breath {
    */
 
   //% block="$breathSensor=variables_get(breathSensor) position"
-  //% group="Sensor input"
+  //% group="Sensor data"
   //% weight=200
 
   export function position(breathSensor: BreathSensor = null): number {
@@ -863,7 +863,7 @@ namespace bioW_Breath {
    */
 
   //% block="$breathSensor=variables_get(breathSensor) velocity"
-  //% group="Sensor input"
+  //% group="Sensor data"
   //% weight=190
 
   export function velocity(breathSensor: BreathSensor = null): number {
@@ -878,7 +878,7 @@ namespace bioW_Breath {
    */
 
   //% block="$breathSensor=variables_get(breathSensor) frequency"
-  //% group="Sensor input"
+  //% group="Sensor data"
   //% weight=180
 
   export function frequency(breathSensor: BreathSensor = null): number {
@@ -923,7 +923,7 @@ namespace bioW_Breath {
 //% color=#F7931E
 //% icon="\uf279" map
 // icon="\uf0a9" arrow circle right
-// groups=["Start block", "Sensor input", "Target breath"]
+// groups=["Start block", "Mapping output"]
 
 //mapping
 namespace bioW_Mapping {
@@ -1399,7 +1399,7 @@ namespace bioW_Radio {
    * @return A new `BreathOverRadio` object.
    */
 
-  //% block="new radio listener|on group $group"
+  //% block="new radio receiver|on group $group"
   //% group.min=0 group.max=255 group.defl=0
   //% blockSetVariable="breathOverRadio"
   //% group="Start block"
@@ -1411,12 +1411,12 @@ namespace bioW_Radio {
 
   /**
    * Get the breathing position sent over radio. Make sure to provide an initialized `BreathOverRadio`.
-   * @param breathOverRadio The listener object.
+   * @param breathOverRadio The receiver object.
    * @return The breathing position.
    */
 
   //% block="$breathOverRadio=variables_get(breathOverRadio) position"
-  //% group="Listener input"
+  //% group="Receiver data"
   //% weight=200
 
   export function position(breathOverRadio: BreathOverRadio = null): number {
@@ -1426,12 +1426,12 @@ namespace bioW_Radio {
 
   /**
    * Get the breathing velocity sent over radio. Make sure to provide an initialized `BreathOverRadio`.
-   * @param breathOverRadio The listener object.
+   * @param breathOverRadio The receiver object.
    * @return The breathing velocity.
    */
 
   //% block="$breathOverRadio=variables_get(breathOverRadio) velocity"
-  //% group="Listener input"
+  //% group="Receiver data"
   //% weight=190
 
   export function velocity(breathOverRadio: BreathOverRadio = null): number {
@@ -1441,12 +1441,12 @@ namespace bioW_Radio {
 
   /**
    * Get the breathing frequency sent over radio. Make sure to provide an initialized `BreathOverRadio`.
-   * @param breathOverRadio The listener object.
+   * @param breathOverRadio The receiver object.
    * @return The breathing frequency.
    */
 
   //% block="$breathOverRadio=variables_get(breathOverRadio) frequency"
-  //% group="Listener input"
+  //% group="Receiver data"
   //% weight=180
 
   export function frequency(breathOverRadio: BreathOverRadio = null): number {
@@ -1455,12 +1455,12 @@ namespace bioW_Radio {
   }
 
   /**
-   * Stop the listener.
-   * @param breathOverRadio The listener object.
+   * Stop the receiver.
+   * @param breathOverRadio The receiver object.
    */
 
   //% block="$breathOverRadio=variables_get(breathOverRadio) stop listening"
-  //% group="Listener input"
+  //% group="Receiver data"
   //% weight=170
 
   export function stopListening(breathOverRadio: BreathOverRadio = null): void {
@@ -1472,13 +1472,13 @@ namespace bioW_Radio {
 
   /**
    * Change the group ID for radio communications.
-   * @param breathOverRadio The listener object.
+   * @param breathOverRadio The receiver object.
    * @param group The new group ID.
    */
 
   //% block="$breathOverRadio=variables_get(breathOverRadio) change group to $group"
   //% group.min=0 group.max=255 group.defl=0
-  //% group="Listener input"
+  //% group="Receiver data"
   //% weight=160
 
   export function changeGroup(
