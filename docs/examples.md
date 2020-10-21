@@ -37,11 +37,11 @@ This information (generated from JSDoc style annotations in the source file) can
 
 ### BioW_Microbit: Drawing on the micro:bit
 
-Source for main file: [main_microbit_example.ts](../typescript/main_microbit_example.ts)
+Source for main file: [main_example_microbit.ts](../typescript/main_example_microbit.ts)
 
 Block program:
 
-![Microbit blocks example](../images/blocks_microbit_example.png)
+![Microbit blocks example](../images/blocks_example_microbit.png)
 
 This tab includes drawing blocks for the 5x5 LED matrix on the micro:bit. Unlike the other components, there is no underlying class here. In terms of blocks, this means that there is no variable to first create in the `[on start]` block which remains empty.
 
@@ -55,11 +55,11 @@ You should see the oscillating bar in the simulator, or on an actual micro:bit i
 
 ### BioW_Neopixel: Drawing on the Neopixel
 
-Source for main file: [main_neopixel_example.ts](../typescript/main_neopixel_example.ts)
+Source for main file: [main_example_neopixel.ts](../typescript/main_example_neopixel.ts)
 
 Block program:
 
-![Neopixel blocks example](../images/blocks_neopixel_example.png)
+![Neopixel blocks example](../images/blocks_example_neopixel.png)
 
 This tab includes blocks to create a Neopixel object and draw on the corresponding 8x8 LED matrix.
 
@@ -81,11 +81,11 @@ We ensure this way that a user is reminded to create objects before using them. 
 
 ### BioW_Breath: Connecting the breath sensor and getting data from it
 
-Source for main file: [main_breath_sensor_example.ts](../typescript/main_breath_sensor_example.ts)
+Source for main file: [main_example_breath_sensor.ts](../typescript/main_example_breath_sensor.ts)
 
 Block program:
 
-![Breath sensor blocks example](../images/blocks_breath_sensor_example.png)
+![Breath sensor blocks example](../images/blocks_example_breath_sensor.png)
 
 This tab includes blocks to connect a breath sensor and get data from it.
 
@@ -97,29 +97,29 @@ When we need to get breathing data we simply use for instance a `[position]` blo
 
 ----
 
-### Using Serial blocks to monitor actual data
+### Serial: Monitor actual data in the console
 
-Source for main file: [main_serial_example.ts](../typescript/main_serial_example.ts)
+Source for main file: [main_example_serial.ts](../typescript/main_example_serial.ts)
 
 Block program:
 
-![Serial blocks example](../images/blocks_serial_example.png)
+![Serial blocks example](../images/blocks_example_serial.png)
 
 ----
 
 ### BioW_Radio: Sending and receiving breath data over radio
 
-Source for sender main file: [main_radio_sender_example.ts](../typescript/main_radio_sender_example.ts)
+Source for sender main file: [main_example_radio_sender.ts](../typescript/main_example_radio_sender.ts)
 
 Block program for sender:
 
-![Radio sender blocks example](../images/blocks_radio_sender_example.png)
+![Radio sender blocks example](../images/blocks_example_radio_sender.png)
 
-Source for receiver main file: [main_radio_receiver_example.ts](../typescript/main_radio_receiver_example.ts)
+Source for receiver main file: [main_example_radio_receiver.ts](../typescript/main_example_radio_receiver.ts)
 
 Block program for receiver:
 
-![Radio receiver blocks example](../images/blocks_radio_receiver_example.png)
+![Radio receiver blocks example](../images/blocks_example_radio_receiver.png)
 
 This tab includes blocks to send and receive breath data over radio.
 
