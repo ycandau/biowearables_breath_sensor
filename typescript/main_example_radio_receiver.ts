@@ -2,7 +2,7 @@
 // --------------------------------------------------
 
 // Create an instance of the `BreathOverRadio` class.
-// This goes in the `|on start|` block.
+// This goes in the `[on start]` block.
 
 let breathOverRadio = bioW_Radio.createBreathOverRadio(0)
 
@@ -14,7 +14,7 @@ let breathOverRadio = bioW_Radio.createBreathOverRadio(0)
 // The `breathOverRadio` variable needs to be created
 // otherwise an error is thrown.
 
-// The drawing function goes in the `|forever|` block.
+// The drawing function goes in the `[forever]` block.
 
 basic.forever(function () {
   bioW_Microbit.drawBar(bioW_Radio.position(breathOverRadio), 10)

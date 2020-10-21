@@ -3,7 +3,7 @@
 
 // Create an instance of the `neopixel.Strip` class.
 // We indicate the `pin` to which the Neopixel is connected.
-// This goes in the `|on start|` block.
+// This goes in the `[on start]` block.
 
 let myNeopixel = bioW_Neopixel.createNeopixel(neoPin.P0)
 
@@ -14,7 +14,7 @@ let myNeopixel = bioW_Neopixel.createNeopixel(neoPin.P0)
 // We indicate the length, color and brightness.
 // We use `oscillator()` to get a variable length.
 
-// The drawing function goes in the `|forever|` block.
+// The drawing function goes in the `[forever]` block.
 
 basic.forever(function () {
   bioW_Neopixel.drawBar(
