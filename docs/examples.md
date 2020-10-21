@@ -99,6 +99,12 @@ When we need to get breathing data we simply use for instance a `[position]` blo
 
 ### Using Serial blocks to monitor actual data
 
+Source for main file: [main_serial_example.ts](../typescript/main_serial_example.ts)
+
+Block program:
+
+![Serial blocks example](../images/blocks_serial_example.png)
+
 ----
 
 ### BioW_Radio: Sending and receiving breath data over radio
@@ -107,13 +113,13 @@ Source for sender main file: [main_radio_sender_example.ts](../typescript/main_r
 
 Block program for sender:
 
-![Radio sender blocks example](../images/main_radio_sender_example.png)
+![Radio sender blocks example](../images/blocks_radio_sender_example.png)
 
 Source for receiver main file: [main_radio_receiver_example.ts](../typescript/main_radio_receiver_example.ts)
 
 Block program for receiver:
 
-![Radio receiver blocks example](../images/main_radio_receiver_example.png)
+![Radio receiver blocks example](../images/blocks_radio_receiver_example.png)
 
 This tab includes blocks to send and receive breath data over radio.
 
