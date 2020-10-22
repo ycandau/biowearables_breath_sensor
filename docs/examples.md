@@ -4,6 +4,16 @@
 
 ----
 
+### Conventions
+
+We use the following conventions:
+
+- `|BioW_Breath|`: A component of the IDE's interface, such as a tab or button.
+- `[new neopixel]`: A block statement or expression.
+- `length`: A parameter, piece of code, or file name.
+
+----
+
 ### Setting up the library
 
 You will need the biowearables library of custom blocks to run these examples in the IDE.
@@ -37,17 +47,19 @@ This information (generated from JSDoc style annotations in the source file) can
 
 ### BioW_Microbit: Drawing on the micro:bit
 
+`|BioW_Microbit|` includes drawing blocks for the 5x5 LED matrix on the micro:bit.
+
 Source for main file: [main_example_microbit.ts](../typescript/main_example_microbit.ts)
 
 Block program:
 
 ![Microbit blocks example](../images/blocks_example_microbit.png)
 
-This tab includes drawing blocks for the 5x5 LED matrix on the micro:bit. Unlike the other components, there is no underlying class here. In terms of blocks, this means that there is no variable to first create in the `[on start]` block which remains empty.
+Unlike the other components, there is no underlying class here. In terms of blocks, this means that there is no variable to first create in the `[on start]` block which remains empty.
 
-We use `[cycle]` from the `|BioW_Breath|` tab to get a sinusoidal oscillator. It has a frequency of 12 cycles per minute, and a phase shift of 0.
+To draw a bar on the LED matrix we add a `[draw bar]` block in the `[forever]` loop. The block has two parameters: `length` and `brightness`. These can be set to fixed values or functions that yield a numeric value.
 
-The length of a `[draw bar]` block is set to this oscillating value. The bar is also set to a fixed brightness of `10`. This goes into the `[forever]` block.
+To draw an oscillating bar we use the `[cycle]` block from the `|BioW_Breath|` tab and assign it to the `length` parameter of the bar. The oscillator has itself two parameters: `frequency` and `phase shift`.
 
 You should see the oscillating bar in the simulator, or on an actual micro:bit if you flash it with this program.
 
@@ -55,17 +67,22 @@ You should see the oscillating bar in the simulator, or on an actual micro:bit i
 
 ### BioW_Neopixel: Drawing on the Neopixel
 
+`|BioW_Neopixel|` includes blocks to create a Neopixel object and draw on the corresponding 8x8 LED matrix.
+
 Source for main file: [main_example_neopixel.ts](../typescript/main_example_neopixel.ts)
 
 Block program:
 
 ![Neopixel blocks example](../images/blocks_example_neopixel.png)
 
-This tab includes blocks to create a Neopixel object and draw on the corresponding 8x8 LED matrix.
+We first need to set a variable to a new Neopixel object. The `[new neopixel]` block at the top of the `|BioW_Neopixel|` tab does just that. Note that inside the tab it is grouped under `|Start block|` to emphasize that its function is to create and initialize an object for later use. This goes in the `[on start]` block.
 
-We first need to create an instance of the `neopixel.Strip` class and assign it to a variable. The first block in the `|BioW_Neopixel|` tab does just that. The default name for the variable is already set to `myNeopixel`. We also indicate which `pin` the Neopixel is connected to. Note that the creation block is placed in a `|Start block|` group to emphasize that its function is to create and initialize an object for later use. This goes in the `[on start]` block.
+All blocks have default values for their parameters, including variable names. In this case the default variable is `myNeopixel`. You could leave it as is or change it. The only constraint is that variables are used consistently throughout the program. We also indicate which `pin` the Neopixel is connected to.
 
-Just like for the micro:bit example, we use an oscillator. The length of a `[draw bar]` block is set to this oscillating value. The bar is also set to a fixed color of `red`, and a fixed brightness of `10`. All the Neopixel drawing blocks, grouped in the tab under `|Display|`, require a Neopixel object. This is already set by default to `myNeopixel` like the creation block. This goes into the `[forever]` block.
+Test panel
+{: .alert .alert-warning}
+
+Just like for the micro:bit example, we use an oscillator. The `length` of a `[draw bar]` block is set to this oscillating value. The bar is also set to a fixed `color`, and a fixed `brightness` of 10. All the Neopixel drawing blocks, grouped in the tab under `|Display|`, require a Neopixel object. This is already set by default to `myNeopixel` as in the creation block. This goes into the `[forever]` loop.
 
 The library throws an error if the Neopixel object is missing or not initialized. Try dragging the `[set myNeopixel]` block out of the `[on start]` block for instance. An error will be thrown, indicated in the IDE by highlighting the block causing the problem:
 
@@ -81,23 +98,25 @@ We ensure this way that a user is reminded to create objects before using them. 
 
 ### BioW_Breath: Connecting the breath sensor and getting data from it
 
+`|BioW_Breath|` includes blocks to connect a breath sensor and get data from it.
+
 Source for main file: [main_example_breath_sensor.ts](../typescript/main_example_breath_sensor.ts)
 
 Block program:
 
 ![Breath sensor blocks example](../images/blocks_example_breath_sensor.png)
 
-This tab includes blocks to connect a breath sensor and get data from it.
+We first need to create an instance of a `BreathSensor` object and assign it to a variable. The `[new breath sensor]` block in the `|BioW_Breath|` tab does just that. We indicate which `pin` the sensor is connected to (on the micro:bit or on the b.Board). This goes in the `[on start]` block.
 
-We first need to create an instance of a `BreathSensor` object and assign it to a variable. The first blocks in the `|BioW_Breath|` tab do just that. We indicate which `pin` the sensor is connected to (on the micro:bit or the b.Board). This goes in the `[on start]` block.
+Under the hood, creating `breathSensor` launches an independent forever loop that periodically reads the pin, stores the corresponding position, and calculates associated values such as the breath velocity. Running this separately rather than in the publicly exposed `[forever]` loop, achieves a more reliable sampling frequency, and avoid issues such as duplicate calls. All of this is transparent to the user.
 
-Under the hood, creating `breathSensor` launches an independent forever loop that periodically polls the pin, stores the corresponding position, and calculates associated values such as the breath velocity. Running this separately rather than in the publicly exposed `[forever]` block, achieves a more reliable polling frequency, and avoid issues such as duplicate calls. All of this is transparent to the user.
-
-When we need to get breathing data we simply use for instance a `[position]` block, assigned here to the length of a bar drawn on the micro:bit.
+When we need to get breathing data we simply use for instance a `[position]` block, assigned here to the `length` of a bar drawn on the micro:bit.
 
 ----
 
 ### Serial: Monitor actual data in the console
+
+`|Serial|` is a standard tab found under `|Advanced|` which we can use to monitor data in the console. This can be useful for debugging.
 
 Source for main file: [main_example_serial.ts](../typescript/main_example_serial.ts)
 
@@ -105,9 +124,32 @@ Block program:
 
 ![Serial blocks example](../images/blocks_example_serial.png)
 
+We can thus monitor the breath position in the previous program by adding a `[serial write value]` block in  the `[forever]` loop. It is set to post a label (any string) and a value set here to the breath `[position]`.
+
+Once the program is running, an option to show the console appears:
+
+![Show simulator console](../images/IDE_show_console_simulator.png)
+
+If we are running the program in the simulator the choice is limited to a console showing simulated data. To work with sensors this is of limited use.
+
+But if we are running the program on a micro:bit connected over USB, with the proper setup, there is also the possibility of monitoring actual data from the device:
+
+![Show simulator console](../images/IDE_show_console_simulator.png)
+
+Note that this feature requires:
+
+- running the IDE on **Chrome**
+- a **paired** micro:bit
+- connected over **USB**
+- and with an up to date **firmware**.
+
+More information is available [here](../README.md).
+
 ----
 
-### BioW_Radio: Sending and receiving breath data over radio
+### BioW_Radio: Sending breath data over radio
+
+`|BioW_Radio|` includes blocks to send and receive breath data over radio. You will need two micro:bits to try this out.
 
 Source for sender main file: [main_example_radio_sender.ts](../typescript/main_example_radio_sender.ts)
 
@@ -115,13 +157,27 @@ Block program for sender:
 
 ![Radio sender blocks example](../images/blocks_example_radio_sender.png)
 
+The sender should be connected to a breath sensor. As previously, we create a `[new breath sensor]` and indicate the `pin` to which it is connected. This block is found in the `|BioW_Breath|` tab.
+
+We then start streaming the breath data by adding a `[start sending]` block. We also indicate the radio `group` and the output `power` to be used.
+
+Both blocks go in the `[on start]` block.
+
+----
+
+### BioW_Radio: Receiving breath data over radio
+
+This is a continuation of the previous section, and introduces the second program that runs on the receiver micro:bit.
+
 Source for receiver main file: [main_example_radio_receiver.ts](../typescript/main_example_radio_receiver.ts)
 
 Block program for receiver:
 
 ![Radio receiver blocks example](../images/blocks_example_radio_receiver.png)
 
-This tab includes blocks to send and receive breath data over radio.
+We create a `[new radio receiver]` in the `[on start]` block and set it to the variable `breathOverRadio`.
+
+We can then get breath data from `breathOverRadio` using the same blocks that we used for a `BreathSensor`, found in the `|BioW_Breath|` tab: for instance, the breath `[position]`.
 
 ----
 
