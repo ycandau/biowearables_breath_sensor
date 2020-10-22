@@ -19,3 +19,15 @@ Custom blocks and examples for the BioWearables workshop, using Brilliant Labs' 
 
 - [Instructions on using the MakeCode IDE](../docs/IDE_instructions.md)
 - [Introduction to the libary and examples](../docs/library_examples.md)
+
+The section on [Efficient setup](./docs/IDE_instructions.md#efficient-setup) in particular has useful information for a more seamless workflow.
+
+----
+
+### Links
+
+- The Brilliant Labs [editor](https://code.brilliantlabs.ca).
+- The MakeCode reference on [defining blocks](https://makecode.com/defining-blocks).
+- The MakeCode [Playground](https://makecode.com/playground) to try things out.
+- The [Neopixel library](https://github.com/microsoft/pxt-neopixel) for a complete example of a library.
+- A useful description of the micro:bit's [reactive scheduler](https://makecode.microbit.org/device/reactive).
