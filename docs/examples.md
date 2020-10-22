@@ -75,12 +75,9 @@ Block program:
 
 ![Neopixel blocks example](../images/blocks_example_neopixel.png)
 
-We first need to set a variable to a new Neopixel object. The `[new neopixel]` block at the top of the `|BioW_Neopixel|` tab does just that. Note that inside the tab it is grouped under `|Start block|` to emphasize that its function is to create and initialize an object for later use. This goes in the `[on start]` block.
+We first need to set a variable to a new Neopixel object. The `[new neopixel]` block at the top of the `|BioW_Neopixel|` tab does just that. Note that inside the tab it is grouped under `|Start block|` to emphasize that its function is to create and initialize an object for later use, and that it goes in the `[on start]` block.
 
 All blocks have default values for their parameters, including variable names. In this case the default variable is `myNeopixel`. You could leave it as is or change it. The only constraint is that variables are used consistently throughout the program. We also indicate which `pin` the Neopixel is connected to.
-
-Test panel
-{: .alert .alert-warning}
 
 Just like for the micro:bit example, we use an oscillator. The `length` of a `[draw bar]` block is set to this oscillating value. The bar is also set to a fixed `color`, and a fixed `brightness` of 10. All the Neopixel drawing blocks, grouped in the tab under `|Display|`, require a Neopixel object. This is already set by default to `myNeopixel` as in the creation block. This goes into the `[forever]` loop.
 
@@ -96,7 +93,7 @@ We ensure this way that a user is reminded to create objects before using them. 
 
 ----
 
-### BioW_Breath: Connecting the breath sensor and getting data from it
+### BioW_Breath: Getting breath data from the sensor
 
 `|BioW_Breath|` includes blocks to connect a breath sensor and get data from it.
 
@@ -106,9 +103,9 @@ Block program:
 
 ![Breath sensor blocks example](../images/blocks_example_breath_sensor.png)
 
-We first need to create an instance of a `BreathSensor` object and assign it to a variable. The `[new breath sensor]` block in the `|BioW_Breath|` tab does just that. We indicate which `pin` the sensor is connected to (on the micro:bit or on the b.Board). This goes in the `[on start]` block.
+We first need to set a variable to a `[new breath sensor]` block, found at the top of the `|BioW_Breath|` tab. We indicate which `pin` the sensor is connected to (on the micro:bit or on the b.Board). This goes in the `[on start]` block.
 
-Under the hood, creating `breathSensor` launches an independent forever loop that periodically reads the pin, stores the corresponding position, and calculates associated values such as the breath velocity. Running this separately rather than in the publicly exposed `[forever]` loop, achieves a more reliable sampling frequency, and avoid issues such as duplicate calls. All of this is transparent to the user.
+Under the hood, creating a `[new breath sensor]` launches an independent forever loop that periodically reads the pin, stores the corresponding position, and calculates associated values such as the breath velocity. Running this separately rather than in the publicly exposed `[forever]` loop achieves a more reliable sampling frequency, and avoid issues such as duplicate calculations. All of this is transparent to the user.
 
 When we need to get breathing data we simply use for instance a `[position]` block, assigned here to the `length` of a bar drawn on the micro:bit.
 
@@ -130,20 +127,18 @@ Once the program is running, an option to show the console appears:
 
 ![Show simulator console](../images/IDE_show_console_simulator.png)
 
-If we are running the program in the simulator the choice is limited to a console showing simulated data. To work with sensors this is of limited use.
+If we are running the program in the simulator the choice is limited to a console showing simulated data. To work with sensors this is of limited use. But with the proper setup, and the program running on a micro:bit, we can also monitor actual data from the device:
 
-But if we are running the program on a micro:bit connected over USB, with the proper setup, there is also the possibility of monitoring actual data from the device:
+![Show device console](../images/IDE_show_console_device.png)
 
-![Show simulator console](../images/IDE_show_console_simulator.png)
-
-Note that this feature requires:
+This feature requires:
 
 - running the IDE on **Chrome**
 - a **paired** micro:bit
 - connected over **USB**
 - and with an up to date **firmware**.
 
-More information is available [here](../README.md).
+More information on setting this up is available [here](../README.md).
 
 ----
 
@@ -157,9 +152,9 @@ Block program for sender:
 
 ![Radio sender blocks example](../images/blocks_example_radio_sender.png)
 
-The sender should be connected to a breath sensor. As previously, we create a `[new breath sensor]` and indicate the `pin` to which it is connected. This block is found in the `|BioW_Breath|` tab.
+The **sender** should be connected to a breath sensor. As previously, we create a `[new breath sensor]` and indicate the `pin` to which it is connected. This is the same block found in the `|BioW_Breath|` tab.
 
-We then start streaming the breath data by adding a `[start sending]` block. We also indicate the radio `group` and the output `power` to be used.
+We then start streaming the breath data from `breathSensor` by adding a `[start sending]` block. We also indicate the radio `group` and the output `power` to be used.
 
 Both blocks go in the `[on start]` block.
 
@@ -167,7 +162,7 @@ Both blocks go in the `[on start]` block.
 
 ### BioW_Radio: Receiving breath data over radio
 
-This is a continuation of the previous section, and introduces the second program that runs on the receiver micro:bit.
+This is a continuation of the previous section, and introduces the second program that runs on the **receiver** micro:bit.
 
 Source for receiver main file: [main_example_radio_receiver.ts](../typescript/main_example_radio_receiver.ts)
 
