@@ -19,6 +19,7 @@ Custom blocks and examples for the BioWearables workshop, using Brilliant Labs' 
 
 - [Instructions on using the MakeCode IDE](../docs/IDE_instructions.md)
 - [Introduction to the libary and examples](../docs/library_examples.md)
+- [FAQ](../docs/FAQ.md)
 
 The section on [Efficient setup](./docs/IDE_instructions.md#efficient-setup) in particular has useful information for a more seamless workflow.
 
