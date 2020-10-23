@@ -29,5 +29,7 @@ The section on [Efficient setup](./docs/IDE_instructions.md#efficient-setup) in 
 - The Brilliant Labs [editor](https://code.brilliantlabs.ca)
 - The MakeCode reference on [defining blocks](https://makecode.com/defining-blocks)
 - The MakeCode [Playground](https://makecode.com/playground) to try things out
-- The [Neopixel library](https://github.com/microsoft/pxt-neopixel) for a complete library example
+- The repository for the [Neopixel library](https://github.com/microsoft/pxt-neopixel) (as an example)
+- The documentation for the [Neopixel library](https://makecode.microbit.org/pkg/microsoft/pxt-neopixel) (as an example)
+- The [MicroPython documentation](https://microbit-micropython.readthedocs.io/en/v1.0.1/index.html)
 - A useful description of the micro:bit's [reactive scheduler](https://makecode.microbit.org/device/reactive)
