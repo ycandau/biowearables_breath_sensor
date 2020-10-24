@@ -8,7 +8,7 @@
 
 #### *The micro:bit is showing me a sad face and then a number*
 
-This is a runtime error. It means that something in the program is wrong, and that the mistake is crashing the micro:bit. The number is an error code that lets you know what kind of issue is taking places. Look up the error code below.
+This is a runtime error. It means that something in the program is wrong, and that the mistake is crashing the micro:bit. The number is an error code that lets you know what kind of issue is taking place. Look up the error code below.
 
 #### *The micro:bit crashes with error 020*
 
