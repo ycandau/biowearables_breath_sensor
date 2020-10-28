@@ -28,6 +28,7 @@ The section on [Efficient setup](./docs/IDE_instructions.md#efficient-setup) in 
 ### Links
 
 - The Brilliant Labs [editor](https://code.brilliantlabs.ca)
+- Language restrictions for [Static TypeScript](https://makecode.com/language)
 - The MakeCode reference on [defining blocks](https://makecode.com/defining-blocks)
 - The MakeCode [Playground](https://makecode.com/playground) to try things out
 - The repository for the [Neopixel library](https://github.com/microsoft/pxt-neopixel) (as an example)
