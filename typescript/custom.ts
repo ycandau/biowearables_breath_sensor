@@ -6,80 +6,71 @@
  * Utilities
  */
 
-type Color = number
-
 namespace util {
-  /**
-   * To start or stop a process.
-   * Examples: For radio streaming or listening.
-   */
-  export enum StartStop {
-    //% block="Start"
-    Start,
-    //% block="Stop"
-    Stop
-  }
+    // @util
+    /**
+     * A union type for classes that provide breath data: `BreathSensor` and `BreathOverRadio`.
+     */
+    export type BreathData =
+        | bioW_Breath.BreathSensor
+        | bioW_Radio.BreathOverRadio
 
-  /**
-   * To indicate the direction of a rotation.
-   * Examples: Drawing a spiral, activating a motor.
-   */
-  export enum RotationDir {
-    //% block="Clockwise"
-    Clockwise = 1,
-    //% block="Counter-clockwise"
-    CounterClockwise = -1
-  }
+    export type Map = (breathData: BreathData) => number
 
-  /**
-   * An interface used for classes that provide breath data,
-   * such as from `BreathSensor` or `BreathOverRadio` instances.
-   */
-  export interface BreathData {
-    position: number
-    velocity: number
-    frequency: number
-    targetPosition: number
-    targetVelocity: number
-    targetFrequency: number
-  }
+    /**
+     * Scale an input ranging from 0 to 100 to an integer value from 0 to max.
+     * @param x The input value to scale (0 to 100).
+     * @param max The maximum integer value to scale to.
+     * @return The scaled value rounded to an integer.
+     */
+    export function iscale(x: number, max: number): number {
+        return Math.clamp(0, max, Math.idiv(x * (max + 1), 100))
+    }
 
-  /**
-   * Scale an input ranging from 0 to 100 to an integer value from 0 to max.
-   * @param x The input value to scale (0 to 100).
-   * @param max The maximum integer value to scale to.
-   * @return The scaled value rounded to an integer.
-   */
-  export function iscale(x: number, max: number): number {
-    return Math.clamp(0, 100, Math.idiv(x * (max + 1), 100))
-  }
+    /**
+     * Scale an input from an input range to an output range.
+     * @param in1 First border of the input range.
+     * @param in2 Second border of the input range.
+     * @param out1 First border of the output range.
+     * @param out2 Second border of the output range.
+     * @param x The input value.
+     * @return The scaled value.
+     */
+    export function map(
+        in1: number,
+        in2: number,
+        out1: number,
+        out2: number,
+        x: number
+    ): number {
+        return ((x - in1) * (out2 - out1)) / (in2 - in1) + out1
+    }
 
-  /**
-   * The error messages used to report issues.
-   */
-  export const errorMessage: { [key: string]: string } = {
-    neopixel: 'You need to create a Neopixel.',
-    breath: 'You need to create a breath sensor.',
-    motor: 'You need to create a motor.',
-    radio: 'You need to create a radio receiver providing breath data.',
-    mapping: 'You need to create a mapping set.'
-  }
+    /**
+     * The error messages used to report issues.
+     */
+    export const errorMessage: { [key: string]: string } = {
+        neopixel: 'You need to create a Neopixel.',
+        breath: 'You need to create a breath sensor.',
+        motor: 'You need to create a motor.',
+        radio: 'You need to create a radio receiver providing breath data.'
+    }
 
-  /**
-   * Test a predicate and throw an error if false.
-   * @param test The boolean value to assert.
-   * @param string The error message to throw.
-   * @example
-   * assert(test, util.errorMessage.type)
-   */
-  export function assert(test: boolean, error: string): void {
-    if (!test) throw error
+    /**
+     * Test a predicate and throw an error if false.
+     * @param test The boolean value to assert.
+     * @param string The error message to throw.
+     * @example
+     * assert(test, util.errorMessage.type)
+     */
+    export function assert(test: boolean, error: string): void {
+        if (!test) throw error
 
-    // Alternatives are found in the control library
-    // (control.assert() / control.fail() / control.panic()).
-    // But in block mode, the user only sees an error code.
-    // Throw instead displays the error message directly.
-  }
+        // Alternatives are found in the control library
+        // (control.assert() / control.fail() / control.panic()).
+        // But in block mode, the user only sees an error code.
+        // Throw instead displays the error message directly.
+    }
 }
 
 /****************************************************************
@@ -91,181 +82,331 @@ namespace util {
 //% icon="\uf0ce" table
 // icon="\uf2db" microchip
 // icon="\uf073" calendar alternate
-// groups=["Display"]
 
-//microbit
 namespace bioW_Microbit {
-  /**
-   * Draw the full LED matrix on the Microbit.
-   * @param brightness The brightness of the matrix (0 to 100).
-   */
+    // @micro/top
 
-  //% block="draw full matrix: brightness = $brightness"
-  //% brightness.min=0 brightness.max=100 brightness.defl=10
-  //% inlineInputMode=inline
-  //% group="Display"
-  //% weight=200
+    /**
+     * Create an object to manage drawing on a micro:bit LED matrix.
+     * @return A new `Microbit` object.
+     */
 
-  export function drawFullMatrix(brightness: number = 10): void {
-    led.setBrightness(util.iscale(brightness, 255))
-    for (let n = 0; n < 25; n++) {
-      led.plot(n % 5, Math.idiv(n, 5))
+    //% block="new microbit"
+    //% blockSetVariable=myMicrobit
+    //% group="On start: Create"
+    //% weight=200
+
+    export function createMicrobit(): Microbit {
+        return new Microbit()
     }
-  }
 
-  /**
-   * Draw a disk on the Microbit LED matrix.
-   * @param radius The radius of the disk (0 to 100).
-   * @param brightness The brightness of the disk (0 to 100).
-   */
+    /**
+     * A class to manage drawing to the micro:bit.
+     * The instance is also used to store breath mappings.
+     */
+    export class Microbit {
+        // @micro/class
+        breath: util.BreathData = null
+        draw: () => void = null
 
-  //% block="draw disk: radius = $radius|brightness = $brightness"
-  //% radius.min=0 radius.max=100 radius.defl=100
-  //% brightness.min=0 brightness.max=100 brightness.defl=10
-  //% expandableArgumentMode="enabled"
-  //% inlineInputMode=inline
-  //% group="Display"
-  //% weight=190
+        constructor() {}
 
-  export function drawDiskMicrobit(
-    radius: number,
-    brightness: number = 10
-  ): void {
-    // Could redo using symmetry
-    brightness = util.iscale(brightness, 255)
-    radius = 0.03 * Math.clamp(0, 100, radius)
-    for (let x = -2; x < 3; x++) {
-      for (let y = -2; y < 3; y++) {
-        let d = radius - Math.sqrt(x * x + y * y)
-        d = Math.clamp(0, 1, d)
-        d *= d *= d // power 4 to curve low values
-        led.plotBrightness(x + 2, y + 2, d * brightness)
-      }
-    }
-  }
+        // ----------------------------------------------------------------
+        // Mapping methods  @micro/map
+        // ----------------------------------------------------------------
 
-  /**
-   * Draw a single bar on the Microbit LED matrix.
-   * @param length The length of the bar (0 to 100).
-   * @param brightness The brightness of the bar (0 to 100).
-   */
+        //% block="map $breathData=variables_get(breathData)|to fill $this(myMicrobit)|brightness: $brightnessMapId"
+        //% inlineInputMode=inline
+        //% group="On start: Map"
+        //% weight=190
 
-  //% block="draw bar: length = $length|brightness = $brightness"
-  //% length.min=0 length.max=100 length.defl=25
-  //% brightness.min=0 brightness.max=100 brightness.defl=10
-  //% expandableArgumentMode="enabled"
-  //% inlineInputMode=inline
-  //% group="Display"
-  //% weight=170
-
-  export function drawBar(length: number, brightness: number = 10): void {
-    length = util.iscale(length, 5)
-    led.setBrightness(util.iscale(brightness, 255))
-    basic.clearScreen()
-    for (let y = 5 - length; y < 5; y++) {
-      led.plot(1, y)
-      led.plot(2, y)
-      led.plot(3, y)
-    }
-  }
-
-  /**
-   * Draw double bars on the Microbit LED matrix.
-   * @param length1 The length of the first bar (0 to 100).
-   * @param brightness1 The brightness of the first bar (0 to 100).
-   * @param length2 The length of the second bar (0 to 100).
-   * @param brightness2 The brightness of the second bar (0 to 100).
-   */
-
-  //% block="draw double bars: length 1 = $length1|brightness 1 = $brightness1|length 2 = $length2|brightness 2 = $brightness2"
-  //% length1.min=0 length1.max=100 length1.defl=25
-  //% brightness1.min=0 brightness1.max=100 brightness1.defl=10
-  //% length2.min=0 length2.max=100 length2.defl=25
-  //% brightness2.min=0 brightness2.max=100 brightness2.defl=10
-  //% expandableArgumentMode="toggle"
-  // inlineInputMode=inline
-  //% group="Display"
-  //% weight=160
-
-  export function drawDoubleBars(
-    length1: number,
-    brightness1: number = 10,
-    length2: number,
-    brightness2: number = 10
-  ): void {
-    length1 = util.iscale(length1, 5)
-    length2 = util.iscale(length2, 5)
-    brightness1 = util.iscale(brightness1, 255)
-    brightness2 = util.iscale(brightness2, 255)
-
-    basic.clearScreen()
-    for (let y = 5 - length1; y < 5; y++) {
-      led.plotBrightness(0, y, brightness1)
-      led.plotBrightness(1, y, brightness1)
-    }
-    for (let y = 5 - length2; y < 5; y++) {
-      led.plotBrightness(3, y, brightness2)
-      led.plotBrightness(4, y, brightness2)
-    }
-  }
-
-  /**
-   * Draw a spiral on the Microbit LED matrix.
-   * @param length The length of the spiral (0 to 100).
-   * @param brightness The brightness of the spiral (0 to 100).
-   * @param direction The direction of the spiral.
-   */
-
-  //% block="draw spiral: length = $length|brightness = $brightness|direction = $direction"
-  //% length.min=0 length.max=100 length.defl=25
-  //% brightness.min=0 brightness.max=100 brightness.defl=10
-  //% expandableArgumentMode="enabled"
-  //% inlineInputMode=inline
-  //% group="Display"
-  //% weight=180
-
-  export function drawSpiral(
-    length: number,
-    brightness: number = 10,
-    direction: util.RotationDir = util.RotationDir.Clockwise
-  ): void {
-    let n = 12 // (2, 2)
-    const dn =
-      direction === util.RotationDir.Clockwise
-        ? [1, 5, -1, -5] // right, down, left, up
-        : [1, -5, -1, 5] // right, up, left, down
-
-    length = util.iscale(length, 25)
-    led.setBrightness(util.iscale(brightness, 255))
-
-    // Unplot LEDs manually because basic.clearScreen() creates a lot flickering
-    for (let segmentIndex = 0, count = 0; segmentIndex < 9; segmentIndex++) {
-      for (let i = 0; i < (segmentIndex >> 1) + 1; i++, count++) {
-        if (count < length) {
-          led.plot(n % 5, Math.idiv(n, 5))
-        } else {
-          led.unplot(n % 5, Math.idiv(n, 5))
+        mapToFill(
+            breathData: util.BreathData,
+            brightnessMapId: bioW_Neopixel.BrightnessMaps
+        ): void {
+            this.breath = breathData
+            this.draw = ((brightnessMap: util.Map) => () => {
+                drawFill(brightnessMap(this.breath))
+            })(bioW_Neopixel.getBrightnessMap(brightnessMapId))
         }
-        n += dn[segmentIndex % 4]
-      }
+
+        //% block="map $breathData=variables_get(breathData)|to disk on $this(myMicrobit)|radius: $lengthMapId|brightness: $brightnessMapId"
+        //% inlineInputMode=inline
+        //% group="On start: Map"
+        //% weight=180
+
+        mapToDisk(
+            breathData: util.BreathData,
+            lengthMapId: bioW_Neopixel.LengthMaps,
+            brightnessMapId: bioW_Neopixel.BrightnessMaps
+        ): void {
+            this.breath = breathData
+            this.draw = ((
+                lengthMap: util.Map,
+                brightnessMap: util.Map
+            ) => () => {
+                drawDisk(lengthMap(this.breath), brightnessMap(this.breath))
+            })(
+                bioW_Neopixel.getLengthMap(lengthMapId),
+                bioW_Neopixel.getBrightnessMap(brightnessMapId)
+            )
+        }
+
+        //% block="map $breathData=variables_get(breathData)|to bar on $this(myMicrobit)|length: $lengthMapId|brightness: $brightnessMapId"
+        //% inlineInputMode=inline
+        //% group="On start: Map"
+        //% weight=170
+
+        mapToBar(
+            breathData: util.BreathData,
+            lengthMapId: bioW_Neopixel.LengthMaps,
+            brightnessMapId: bioW_Neopixel.BrightnessMaps
+        ): void {
+            this.breath = breathData
+            this.draw = ((
+                lengthMap: util.Map,
+                brightnessMap: util.Map
+            ) => () => {
+                drawBar(lengthMap(this.breath), brightnessMap(this.breath))
+            })(
+                bioW_Neopixel.getLengthMap(lengthMapId),
+                bioW_Neopixel.getBrightnessMap(brightnessMapId)
+            )
+        }
+
+        //% block="map $breathData=variables_get(breathData)|to double bars on $this(myMicrobit)|length 1: $lengthMapId1|brightness 1: $brightnessMapId1|length 2: $lengthMapId2|brightness 2: $brightnessMapId2"
+        // inlineInputMode=inline
+        //% group="On start: Map"
+        //% weight=160
+
+        mapToDoubleBars(
+            breathData: util.BreathData,
+            lengthMapId1: bioW_Neopixel.LengthMaps,
+            brightnessMapId1: bioW_Neopixel.BrightnessMaps,
+            lengthMapId2: bioW_Neopixel.LengthMaps,
+            brightnessMapId2: bioW_Neopixel.BrightnessMaps
+        ): void {
+            this.breath = breathData
+            this.draw = ((
+                lengthMap1: util.Map,
+                brightnessMap1: util.Map,
+                lengthMap2: util.Map,
+                brightnessMap2: util.Map
+            ) => () => {
+                drawDoubleBars(
+                    lengthMap1(this.breath),
+                    brightnessMap1(this.breath),
+                    lengthMap2(this.breath),
+                    brightnessMap2(this.breath)
+                )
+            })(
+                bioW_Neopixel.getLengthMap(lengthMapId1),
+                bioW_Neopixel.getBrightnessMap(brightnessMapId1),
+                bioW_Neopixel.getLengthMap(lengthMapId2),
+                bioW_Neopixel.getBrightnessMap(brightnessMapId2)
+            )
+        }
+
+        //% block="map $breathData=variables_get(breathData)|to spiral on $this(myMicrobit)|length: $lengthMapId|brightness: $brightnessMapId"
+        //% inlineInputMode=inline
+        //% group="On start: Map"
+        //% weight=150
+
+        mapToSpiral(
+            breathData: util.BreathData,
+            lengthMapId: bioW_Neopixel.LengthMaps,
+            brightnessMapId: bioW_Neopixel.BrightnessMaps
+        ): void {
+            this.breath = breathData
+            this.draw = ((
+                lengthMap: util.Map,
+                brightnessMap: util.Map
+            ) => () => {
+                drawSpiral(lengthMap(this.breath), brightnessMap(this.breath))
+            })(
+                bioW_Neopixel.getLengthMap(lengthMapId),
+                bioW_Neopixel.getBrightnessMap(brightnessMapId)
+            )
+        }
+
+        // ----------------------------------------------------------------
+        // Draw the mapping  @micro/do
+        // ----------------------------------------------------------------
+
+        //% block="draw mapping from breath to $this(myMicrobit)"
+        //% inlineInputMode=inline
+        //% group="Forever: Draw"
+        //% weight=200
+
+        drawMapping() {
+            this.draw()
+        }
     }
-  }
 
-  /**
-   * Draw the LED matrix over time on the Microbit.
-   * @param value The value to plot (0 to 100).
-   * @param frequency The brightness of the first bar (0 to 100).
-   */
+    // ----------------------------------------------------------------
+    // Drawing functions  @micro/draw
+    // ----------------------------------------------------------------
 
-  // block="draw"
-  // value.min=0 value.max=100 value.defl=25
-  // frequency.min=0 frequency.max=100 frequency.defl=10
-  // inlineInputMode=inline
-  // group="Microbit"
+    /**
+     * Draw the full LED matrix on the Microbit.
+     * @param brightness The brightness of the matrix (0 to 100).
+     */
 
-  export function drawPixel(value: number, frequency: number): void {
-    // @todo
-  }
+    //% block="draw fill: brightness = $brightness"
+    //% brightness.min=0 brightness.max=100 brightness.defl=10
+    //% inlineInputMode=inline
+    //% advanced=true
+    //% weight=200
+
+    export function drawFill(brightness: number = 10): void {
+        led.setBrightness(util.iscale(brightness, 255))
+        for (let n = 0; n < 25; n++) {
+            led.plot(n % 5, Math.idiv(n, 5))
+        }
+    }
+
+    /**
+     * Draw a disk on the Microbit LED matrix.
+     * @param radius The radius of the disk (0 to 100).
+     * @param brightness The brightness of the disk (0 to 100).
+     */
+
+    //% block="draw disk: radius = $radius|brightness = $brightness"
+    //% radius.min=0 radius.max=100 radius.defl=100
+    //% brightness.min=0 brightness.max=100 brightness.defl=10
+    //% inlineInputMode=inline
+    //% advanced=true
+    //% weight=190
+
+    export function drawDisk(radius: number, brightness: number = 10): void {
+        // @todo Could use symmetry
+        brightness = util.iscale(brightness, 255)
+        radius = 0.03 * Math.clamp(0, 100, radius)
+        for (let x = -2; x < 3; x++) {
+            for (let y = -2; y < 3; y++) {
+                let d = radius - Math.sqrt(x * x + y * y)
+                d = Math.clamp(0, 1, d)
+                d *= d *= d // power 4 to curve low values
+                led.plotBrightness(x + 2, y + 2, d * brightness)
+            }
+        }
+    }
+
+    /**
+     * Draw a single bar on the Microbit LED matrix.
+     * @param length The length of the bar (0 to 100).
+     * @param brightness The brightness of the bar (0 to 100).
+     */
+
+    //% block="draw bar: length = $length|brightness = $brightness"
+    //% length.min=0 length.max=100 length.defl=25
+    //% brightness.min=0 brightness.max=100 brightness.defl=10
+    //% inlineInputMode=inline
+    //% advanced=true
+    //% weight=170
+
+    export function drawBar(length: number, brightness: number = 10): void {
+        length = util.iscale(length, 5)
+        led.setBrightness(util.iscale(brightness, 255))
+        basic.clearScreen()
+        for (let y = 5 - length; y < 5; y++) {
+            led.plot(1, y)
+            led.plot(2, y)
+            led.plot(3, y)
+        }
+    }
+
+    /**
+     * Draw double bars on the Microbit LED matrix.
+     * @param length1 The length of the first bar (0 to 100).
+     * @param brightness1 The brightness of the first bar (0 to 100).
+     * @param length2 The length of the second bar (0 to 100).
+     * @param brightness2 The brightness of the second bar (0 to 100).
+     */
+
+    //% block="draw double bars: length 1 = $length1|brightness 1 = $brightness1|length 2 = $length2|brightness 2 = $brightness2"
+    //% length1.min=0 length1.max=100 length1.defl=25
+    //% brightness1.min=0 brightness1.max=100 brightness1.defl=10
+    //% length2.min=0 length2.max=100 length2.defl=25
+    //% brightness2.min=0 brightness2.max=100 brightness2.defl=10
+    // inlineInputMode=inline
+    //% advanced=true
+    //% weight=160
+
+    export function drawDoubleBars(
+        length1: number,
+        brightness1: number = 10,
+        length2: number,
+        brightness2: number = 10
+    ): void {
+        length1 = util.iscale(length1, 5)
+        length2 = util.iscale(length2, 5)
+        brightness1 = util.iscale(brightness1, 255)
+        brightness2 = util.iscale(brightness2, 255)
+
+        basic.clearScreen()
+        for (let y = 5 - length1; y < 5; y++) {
+            led.plotBrightness(0, y, brightness1)
+            led.plotBrightness(1, y, brightness1)
+        }
+        for (let y = 5 - length2; y < 5; y++) {
+            led.plotBrightness(3, y, brightness2)
+            led.plotBrightness(4, y, brightness2)
+        }
+    }
+
+    /**
+     * Draw a spiral on the Microbit LED matrix.
+     * @param length The length of the spiral (0 to 100).
+     * @param brightness The brightness of the spiral (0 to 100).
+     */
+
+    //% block="draw spiral: length = $length|brightness = $brightness"
+    //% length.min=0 length.max=100 length.defl=25
+    //% brightness.min=0 brightness.max=100 brightness.defl=10
+    //% inlineInputMode=inline
+    //% advanced=true
+    //% weight=1850
+
+    export function drawSpiral(length: number, brightness: number = 10): void {
+        let n = 12 // (2, 2)
+        const dn = [1, -5, -1, 5] // right, up, left, down
+        // Clockwise is [1, 5, -1, -5] // right, down, left, up
+
+        length = util.iscale(length, 25)
+        led.setBrightness(util.iscale(brightness, 255))
+
+        // Unplot LEDs manually because basic.clearScreen() creates a lot flickering
+        for (
+            let segmentIndex = 0, count = 0;
+            segmentIndex < 9;
+            segmentIndex++
+        ) {
+            for (let i = 0; i < (segmentIndex >> 1) + 1; i++, count++) {
+                if (count < length) {
+                    led.plot(n % 5, Math.idiv(n, 5))
+                } else {
+                    led.unplot(n % 5, Math.idiv(n, 5))
+                }
+                n += dn[segmentIndex % 4]
+            }
+        }
+    }
+
+    /**
+     * Draw the LED matrix over time on the Microbit.
+     * @param value The value to plot (0 to 100).
+     * @param frequency The brightness of the first bar (0 to 100).
+     */
+
+    // block="draw"
+    // value.min=0 value.max=100 value.defl=25
+    // frequency.min=0 frequency.max=100 frequency.defl=10
+    // inlineInputMode=inline
+
+    export function drawPixel(value: number, frequency: number): void {
+        // @todo
+    }
 }
 
 /****************************************************************
@@ -277,421 +418,766 @@ namespace bioW_Microbit {
 //% icon="\uf110" spinner (same as generic Neopixel)
 // icon="\uf0eb" lightbulb
 // icon="\uf00a" th
-// groups=["Start block", "Display"]
-// @problem The space in the group name causes an issue.
-// But it works by removing the line (// vs //%).
 
-//neopixel
 namespace bioW_Neopixel {
-  /**
-   * Create an object to manage a Neopixel LED matrix.
-   * @param pin The pin on the b.Board to which the Neopixel is connected.
-   * @return A new Neopixel strip object.
-   */
-
-  //% block="new Neopixel on $pin"
-  //% pin.defl=neoPin.P0
-  //% blockSetVariable=myNeopixel
-  //% group="Start block"
-  //% weight=200
-
-  export function createNeopixel(pin: neoPin): neopixel.Strip {
-    return neopixel.createStrip(
-      BoardID.zero,
-      ClickID.Zero,
-      pin,
-      64,
-      NeoPixelMode.RGBW
-    )
-  }
-
-  /**
-   * Calculate the absolute distance between two values.
-   * @param value1 The first value.
-   * @param value2 The second value.
-   * @return abs(value1 - value2)
-   */
-
-  //% block="distance from $value1 to $value2"
-  //% value1.min=-100 value1.max=100 value1.defl=25
-  //% value2.min=-100 value2.max=100 value2.defl=75
-  //% group="Color mappings"
-  //% weight=200
-
-  export function distance(value1: number, value2: number): number {
-    return Math.abs(value1 - value2)
-  }
-
-  /**
-   * Map a value to three colors based on whether it is below, between or above two thresholds.
-   * @param value The value to map.
-   * @param low The low threshold.
-   * @param high The high threshold.
-   * @param below The color when the value is below the thresholds.
-   * @param between The color when the value is between the thresholds.
-   * @param above The color when the value is above the thresholds.
-   * @return One of the three possible colors.
-   */
-
-  //% block="one color out of three based on|where $value is in relation to $low and $high|below: $below|between: $between|or above: $above|"
-  //% value.min=-100 value.max=100 value.defl=30
-  //% low.min=-100 low.max=100 low.defl=20
-  //% high.min=-100 high.max=100 high.defl=40
-  //% below.shadow=neopixel_colors below.defl=NeoPixelColors.Green
-  //% between.shadow=neopixel_colors between.defl=NeoPixelColors.Blue
-  //% above.shadow=neopixel_colors above.defl=NeoPixelColors.Red
-  //% group="Color mappings"
-  //% weight=190
-
-  export function colorFromBelowBetweenAbove(
-    value: number,
-    low: number,
-    high: number,
-    below: number,
-    between: number,
-    above: number
-  ): number {
-    // Still works if low > high
-    if (value <= low && value <= high) {
-      return below & 0xffffff
-    } else if (value > low && value > high) {
-      return above & 0xffffff
-    } else {
-      return between & 0xffffff
+    // @neo/top
+    /**
+     * Enumeration of all possible mappings for the drawing length.
+     */
+    export enum LengthMaps {
+        Constant = 0,
+        Position,
+        Velocity,
+        Frequency,
+        //% block="Target position"
+        TargetPosition,
+        //% block="Target velocity"
+        TargetVelocity,
+        //% block="Target frequency"
+        TargetFrequency,
+        //% block="Target position random frequency"
+        TargetPositionRandomFrequency
     }
-  }
 
-  /**
-   * Map a value to three colors based on whether its distance to a target is close, medium or far.
-   * @param value The value to map.
-   * @param target The target to define the distance between it and the value.
-   * @param radius The radius at which the distance is considered close.
-   * @param close The color when the distance is close (less than the radius).
-   * @param medium The color when the distance is medium (between the radius and double the radius).
-   * @param far The color for far distances (more than double the radius).
-   * @return One of the three possible colors.
-   */
-
-  //% block="color from the distance between $value and $target|close: $close|medium: $medium|far: $far|radius: $radius"
-  //% value.min=-100 value.max=100 value.defl=50
-  //% target.min=-100 target.max=100 target.defl=50
-  //% radius.min=0 radius.max=100 radius.defl=20
-  //% close.shadow=neopixel_colors close.defl=NeoPixelColors.Green
-  //% medium.shadow=neopixel_colors medium.defl=NeoPixelColors.Blue
-  //% far.shadow=neopixel_colors far.defl=NeoPixelColors.Red
-  //% group="Color mappings"
-  //% weight=180
-
-  export function colorFromCloseMediumFar(
-    value: number,
-    target: number,
-    radius: number,
-    close: number,
-    medium: number,
-    far: number
-  ): number {
-    const d = Math.abs(value - target)
-    if (d <= radius) {
-      return close & 0xffffff
-    } else if (d <= 2 * radius) {
-      return medium & 0xffffff
-    } else {
-      return far & 0xffffff
-    }
-  }
-
-  /**
-   * Draw the full LED matrix on the Neopixel. Make sure to provide an initialized `Neopixel`.
-   * @param myNeopixel The Neopixel LED matrix.
-   * @param color The color of the matrix (24 bit).
-   * @param brightness The brightness of the matrix (0 to 100).
-   */
-
-  //% block="$myNeopixel=variables_get(myNeopixel)|draw full matrix: color = $color|brightness = $brightness"
-  //% color.shadow=neopixel_colors
-  //% brightness.min=0 brightness.max=100 brightness.defl=10
-  //% expandableArgumentMode="enabled"
-  //% inlineInputMode=inline
-  //% group="Display"
-  //% weight=190
-
-  export function drawFullMatrix(
-    myNeopixel: neopixel.Strip = null,
-    color: number,
-    brightness: number = 10
-  ): void {
-    util.assert(!!myNeopixel, util.errorMessage.neopixel)
-    myNeopixel.clear()
-    myNeopixel.setBrightness(util.iscale(brightness, 255))
-    myNeopixel.showColor(color)
-  }
-
-  /**
-   * Draw a diagonal gradient on the Neopixel. Make sure to provide an initialized `Neopixel`.
-   * @param myNeopixel The Neopixel LED matrix.
-   * @param color The color of the gradient (24 bit).
-   * @param brightness The brightness of the matrix (0 to 100).
-   */
-
-  //% block="$myNeopixel=variables_get(myNeopixel)|draw gradient: color = $color|brightness = $brightness"
-  //% color.shadow=neopixel_colors
-  //% brightness.min=0 brightness.max=100 brightness.defl=10
-  //% expandableArgumentMode="enabled"
-  //% inlineInputMode=inline
-  //% group="Display"
-  //% weight=180
-
-  export function drawGradient(
-    myNeopixel: neopixel.Strip = null,
-    color: number,
-    brightness: number
-  ): void {
-    util.assert(!!myNeopixel, util.errorMessage.neopixel)
-    myNeopixel.setBrightness(util.iscale(brightness, 255))
-    const param = rgbFadeColorInit(color)
-    myNeopixel.clear()
-
-    for (let x = 0; x < 8; x++) {
-      for (let y = 0; y < 8; y++) {
-        const r = (x + y) / 14
-        const faded = rgbFadeColor(param, (100 * (r * r * r + 0.02)) / 1.02)
-        myNeopixel.setPixelColor(x + 8 * y, faded)
-      }
-    }
-    myNeopixel.show()
-  }
-
-  /**
-   * Draw a disk on the Neopixel LED matrix. Make sure to provide an initialized `Neopixel`.
-   * @param myNeopixel The Neopixel LED matrix.
-   * @param radius The radius of the disk (0 to 100).
-   * @param color The color of the disk (24 bit).
-   * @param brightness The brightness of the disk (0 to 100).
-   */
-
-  //% block="$myNeopixel=variables_get(myNeopixel)|draw disk: radius = $radius|color = $color|brightness = $brightness"
-  //% radius.min=0 radius.max=100 radius.defl=100
-  //% color.shadow=neopixel_colors
-  //% brightness.min=0 brightness.max=100 brightness.defl=10
-  //% expandableArgumentMode="enabled"
-  //% inlineInputMode=inline
-  //% group="Display"
-  //% weight=170
-
-  export function drawDisk(
-    myNeopixel: neopixel.Strip = null,
-    radius: number,
-    color: number,
-    brightness: number = 10
-  ): void {
-    util.assert(!!myNeopixel, util.errorMessage.neopixel)
-    radius = util.iscale(radius, 4)
-    myNeopixel.setBrightness(util.iscale(brightness, 255))
-
-    // @todo: Brightness gradient by ramping RGB values
-    myNeopixel.clear()
-    for (let x = 0; x < 8; x++) {
-      for (let y = 0; y < 8; y++) {
-        if (
-          Math.sqrt((x - 3.5) * (x - 3.5) + (y - 3.5) * (y - 3.5)) <= radius
-        ) {
-          myNeopixel.setPixelColor(x + y * 8, color)
+    /**
+     * Get a map from breath data to drawing length.
+     * @param lengthMapId The id of the chosen length mapping.
+     * @return A `Map` of type `(BreathData) => number`.
+     */
+    export function getLengthMap(lengthMapId: LengthMaps): util.Map {
+        switch (lengthMapId) {
+            default:
+                throw 'Unexpected lengthMapId' // @debug
+            case LengthMaps.Constant:
+                return (breathData) => {
+                    return 100
+                }
+            case LengthMaps.Position:
+                return (breathData) => {
+                    return breathData.position
+                }
+            case LengthMaps.Velocity:
+                return (breathData) => {
+                    return breathData.velocity
+                }
+            case LengthMaps.Frequency:
+                return (breathData) => {
+                    return breathData.frequency
+                }
+            case LengthMaps.TargetPosition:
+                return (breathData) => {
+                    return breathData.targetPosition
+                }
+            case LengthMaps.TargetVelocity:
+                return (breathData) => {
+                    return breathData.targetVelocity
+                }
+            case LengthMaps.TargetFrequency:
+                return (breathData) => {
+                    return breathData.targetFrequency
+                }
+            case LengthMaps.TargetPositionRandomFrequency:
+                // @todo switch target frequency
+                return (breathData) => {
+                    return breathData.targetFrequency
+                }
         }
-      }
     }
-    myNeopixel.show()
-  }
 
-  /**
-   * Draw a single bar on the Neopixel LED matrix. Make sure to provide an initialized `Neopixel`.
-   * @param myNeopixel The Neopixel LED matrix.
-   * @param length The length of the bar (0 to 100).
-   * @param color The color of the bar (24 bit).
-   * @param brightness The brightness of the bar (0 to 100).
-   */
+    // Could also use an object literal: @alternate
+    // function getLengthMap2(lengthMapId: LengthMaps): util.Map {
+    //     const maps: { [index: number]: util.Map } = {
+    //         [LengthMaps.Constant]: (breathData) => {
+    //             return 100
+    //         }
+    //     }
+    //     return maps[lengthMapId]
+    // }
 
-  //% block="$myNeopixel=variables_get(myNeopixel)|draw bar: length = $length|color = $color|brightness = $brightness"
-  //% length.min=0 length.max=100 length.defl=25
-  //% color.shadow=neopixel_colors
-  //% brightness.min=0 brightness.max=100 brightness.defl=10
-  //% expandableArgumentMode="enabled"
-  //% inlineInputMode=inline
-  //% group="Display"
-  //% weight=160
-
-  export function drawBar(
-    myNeopixel: neopixel.Strip = null,
-    length: number,
-    color: number,
-    brightness: number = 10
-  ): void {
-    util.assert(!!myNeopixel, util.errorMessage.neopixel)
-    length = util.iscale(length, 8)
-    myNeopixel.setBrightness(util.iscale(brightness, 255))
-
-    myNeopixel.clear()
-    for (let y = 8 - length; y < 8; y++) {
-      const n = y << 3
-      myNeopixel.setPixelColor(n + 2, color)
-      myNeopixel.setPixelColor(n + 3, color)
-      myNeopixel.setPixelColor(n + 4, color)
-      myNeopixel.setPixelColor(n + 5, color)
+    /**
+     * Enumeration of all possible mappings for the drawing color.
+     */
+    export enum ColorMaps {
+        Constant = 0,
+        Position,
+        Velocity,
+        //% block="Target position"
+        TargetPosition,
+        //% block="Target velocity"
+        TargetVelocity,
+        //% block="Target frequency"
+        TargetFrequency,
+        //% block="Delta frequency"
+        DeltaFrequency,
+        //% block="Zero crossing"
+        ZeroCrossing,
+        //% block="Increment Color"
+        IncrementColor
     }
-    myNeopixel.show()
-  }
 
-  /**
-   * Draw double bars on the Neopixel LED matrix. Make sure to provide an initialized `Neopixel`.
-   * @param myNeopixel The Neopixel LED matrix.
-   * @param length1 The length of the first bar (0 to 100).
-   * @param color1 The color of the first bar (24 bit).
-   * @param length2 The length of the second bar (0 to 100).
-   * @param color2 The color of the second bar (24 bit).
-   * @param brightness The brightness of the two bars (0 to 100).
-   */
-
-  //% block="$myNeopixel=variables_get(myNeopixel)|draw double bars: length 1 = $length1|color 1 = $color1|length 2 = $length2|color 2 = $color2|brightness = $brightness"
-  //% length1.min=0 length1.max=100 length1.defl=25
-  //% color1.shadow=neopixel_colors
-  //% length2.min=0 length2.max=100 length2.defl=25
-  //% color2.shadow=neopixel_colors
-  //% brightness.min=0 brightness.max=100 brightness.defl=10
-  //% expandableArgumentMode="enabled"
-  // inlineInputMode=inline
-  //% group="Display"
-  //% weight=150
-
-  export function drawDoubleBars(
-    myNeopixel: neopixel.Strip = null,
-    length1: number,
-    color1: number = NeoPixelColors.Red,
-    length2: number,
-    color2: number = NeoPixelColors.Red,
-    brightness: number = 10
-  ): void {
-    util.assert(!!myNeopixel, util.errorMessage.neopixel)
-    length1 = util.iscale(length1, 8)
-    length2 = util.iscale(length2, 8)
-    myNeopixel.setBrightness(util.iscale(brightness, 255))
-
-    // @todo: Brightness gradient by ramping RGB values
-    myNeopixel.clear()
-    for (let y = 8 - length1; y < 8; y++) {
-      const n = y * 8
-      myNeopixel.setPixelColor(n + 0, color1)
-      myNeopixel.setPixelColor(n + 1, color1)
-      myNeopixel.setPixelColor(n + 2, color1)
+    /**
+     * Get a map from breath data to drawing color.
+     * @param colorMapId The id of the chosen color mapping.
+     * @return A `Map` of type `(BreathData) => number`.
+     */
+    function getColorMap(colorMapId: ColorMaps): util.Map {
+        switch (colorMapId) {
+            default:
+                throw 'Unexpected colorMapId' // @debug
+            case ColorMaps.Constant:
+                return (breathData) => {
+                    return neopixel.colors(NeoPixelColors.Red)
+                }
+            case ColorMaps.Position:
+                return (breathData) => {
+                    return breathData.position > 50
+                        ? neopixel.colors(NeoPixelColors.Green)
+                        : neopixel.colors(NeoPixelColors.Blue)
+                }
+            case ColorMaps.Velocity:
+                return (breathData) => {
+                    return breathData.velocity > 50
+                        ? neopixel.colors(NeoPixelColors.Green)
+                        : neopixel.colors(NeoPixelColors.Blue)
+                }
+            case ColorMaps.TargetPosition:
+                return (breathData) => {
+                    const radius = 20
+                    const distance = Math.abs(
+                        breathData.targetPosition - breathData.position
+                    )
+                    if (distance <= radius) {
+                        return neopixel.colors(NeoPixelColors.Green)
+                    } else if (distance <= 2 * radius) {
+                        return neopixel.colors(NeoPixelColors.Blue)
+                    } else {
+                        return neopixel.colors(NeoPixelColors.Red)
+                    }
+                }
+            case ColorMaps.TargetVelocity:
+                return (breathData) => {
+                    const radius = 20
+                    const distance = Math.abs(
+                        breathData.targetVelocity - breathData.velocity
+                    )
+                    if (distance <= radius) {
+                        return neopixel.colors(NeoPixelColors.Green)
+                    } else if (distance <= 2 * radius) {
+                        return neopixel.colors(NeoPixelColors.Blue)
+                    } else {
+                        return neopixel.colors(NeoPixelColors.Red)
+                    }
+                }
+            case ColorMaps.TargetFrequency:
+                return (breathData) => {
+                    const radius = 20
+                    const distance =
+                        breathData.frequency - breathData.targetFrequency
+                    if (distance < -radius) {
+                        return neopixel.colors(NeoPixelColors.Blue)
+                    } else if (distance > radius) {
+                        return neopixel.colors(NeoPixelColors.Red)
+                    } else {
+                        return neopixel.colors(NeoPixelColors.Green)
+                    }
+                }
+            case ColorMaps.DeltaFrequency:
+                return (breathData) => {
+                    const delta =
+                        breathData.frequency / breathData.targetFrequency - 1
+                    if (delta < -0.1) {
+                        return neopixel.colors(NeoPixelColors.Green)
+                    } else if (delta > 0.1) {
+                        return neopixel.colors(NeoPixelColors.Red)
+                    } else {
+                        return neopixel.colors(NeoPixelColors.Blue)
+                    }
+                }
+            case ColorMaps.ZeroCrossing: // @todo needs props
+                return (breathData) => {
+                    return neopixel.colors(NeoPixelColors.Red)
+                }
+            case ColorMaps.IncrementColor:
+                // Using a closure to store color and limit calls to hsl()
+                // @alternate could use scheduler
+                return ((): util.Map => {
+                    let N = -1
+                    let color = 0
+                    return (breathData) => {
+                        let n = input.runningTime() % 1000
+                        if (n !== N) {
+                            color = neopixel.hsl((n * 60) % 360, 99, 50)
+                            N = n
+                        }
+                        return color
+                    }
+                })()
+        }
     }
-    for (let y = 8 - length2; y < 8; y++) {
-      const n = y * 8
-      myNeopixel.setPixelColor(n + 5, color2)
-      myNeopixel.setPixelColor(n + 6, color2)
-      myNeopixel.setPixelColor(n + 7, color2)
+
+    /**
+     * Enumeration of all possible mappings for the drawing brightness.
+     */
+    export enum BrightnessMaps {
+        Constant = 0,
+        Position,
+        Velocity,
+        Frequency,
+        //% block="Target position"
+        TargetPosition,
+        //% block="Target velocity"
+        TargetVelocity,
+        //% block="Delta frequency"
+        DeltaFrequency
     }
-    myNeopixel.show()
-  }
 
-  /**
-   * Draw a spiral on a Neopixel LED matrix. Make sure to provide an initialized `Neopixel`.
-   * @param myNeopixel The Neopixel LED matrix.
-   * @param length The length of the spiral (0 to 100).
-   * @param color The color of the spiral (24 bit).
-   * @param brightness The brightness of the spiral (0 to 100).
-   * @param direction The direction of the spiral.
-   */
+    /**
+     * Get a map from breath data to drawing brightness.
+     * @param colorMapId The id of the chosen brightness mapping.
+     * @return A `Map` of type `(BreathData) => number`.
+     */
+    export function getBrightnessMap(
+        brightnessMapId: BrightnessMaps
+    ): util.Map {
+        switch (brightnessMapId) {
+            default:
+                throw 'Unexpected brightnessMapId' // @debug
+            case BrightnessMaps.Constant:
+                return (breathData) => {
+                    return 255
+                }
+            case BrightnessMaps.Position:
+                return (breathData) => {
+                    return breathData.position
+                }
+            case BrightnessMaps.Velocity:
+                return (breathData) => {
+                    return breathData.velocity
+                }
+            case BrightnessMaps.Frequency:
+                return (breathData) => {
+                    return breathData.frequency // @todo scaling is reversed
+                }
+            case BrightnessMaps.TargetPosition:
+                return (breathData) => {
+                    return breathData.targetPosition
+                }
+            case BrightnessMaps.TargetVelocity:
+                return (breathData) => {
+                    const radius = 20
+                    const low = breathData.targetVelocity - radius
+                    const high = breathData.targetVelocity + radius
+                    if (breathData.velocity < low) {
+                        // dim to max
+                        return util.map(0, low, 0, 100, breathData.velocity)
+                    } else if (breathData.velocity > high) {
+                        // max to dim
+                        return util.map(high, 100, 100, 0, breathData.velocity)
+                    } else {
+                        // max
+                        return 100
+                    }
+                }
 
-  //% block="$myNeopixel=variables_get(myNeopixel)|draw spiral: length = $length|color = $color|brightness = $brightness|direction = $direction"
-  //% length.min=0 length.max=100 length.defl=25
-  //% color.shadow=neopixel_colors
-  //% brightness.min=0 brightness.max=100 brightness.defl=10
-  //% expandableArgumentMode="enabled"
-  // inlineInputMode=inline
-  //% group="Display"
-  //% weight=140
-
-  export function drawSpiral(
-    myNeopixel: neopixel.Strip = null,
-    length: number,
-    color: number,
-    brightness: number = 10,
-    direction: util.RotationDir = util.RotationDir.Clockwise
-  ): void {
-    util.assert(!!myNeopixel, util.errorMessage.neopixel)
-    length = util.iscale(length, 64)
-    myNeopixel.setBrightness(util.iscale(brightness, 255))
-
-    let n = 36 // (4, 4)
-    const dn =
-      direction === util.RotationDir.Clockwise
-        ? [-1, -8, 1, 8] // left, up, right, down
-        : [-8, -1, 8, 1] // up, left, down, right
-
-    myNeopixel.clear()
-    // Draw each segment or portion of the last segment
-    for (let segmentIndex = 0, count = 0; count < length; segmentIndex++) {
-      let segmentLength = (segmentIndex >> 1) + 1
-      segmentLength = Math.min(segmentLength, length - count)
-      for (let i = 0; i < segmentLength; i++) {
-        myNeopixel.setPixelColor(n, color)
-        n += dn[segmentIndex % 4]
-      }
-      count += segmentLength
+            case BrightnessMaps.DeltaFrequency: // @todo not finished in Arduino code
+                return (breathData) => {
+                    const delta =
+                        breathData.frequency / breathData.targetFrequency - 1
+                    if (delta < -0.1) {
+                        return 100
+                    } else if (delta > 0.1) {
+                        return 100
+                    } else {
+                        return 255
+                    }
+                }
+        }
     }
-    myNeopixel.show()
-  }
 
-  /**
-   * Interface for temporary color parameters used to fade a color by luminosity.
-   */
-  interface RGBFadeParameters {
-    red: number
-    green: number
-    blue: number
-    luminosity: number
-  }
+    /**
+     * Create an object to manage a Neopixel LED matrix.
+     * @param pin The pin on the b.Board to which the Neopixel is connected.
+     * @return A new `Neopixel` object.
+     */
 
-  /**
-   * Initial calculation to get the color parameters to fade a color by luminosity.
-   * @param rgb A color defined by RGB components (0 to 0xFFFFFF).
-   * @return Color parameters used to calculated faded shades by luminosity.
-   */
-  function rgbFadeColorInit(rgb: number): RGBFadeParameters {
-    const r = (rgb >> 16) & 0xff
-    const g = (rgb >> 8) & 0xff
-    const b = (rgb >> 0) & 0xff
-    const lum = (Math.max(Math.max(r, g), b) + Math.min(Math.min(r, g), b)) >> 1
-    const minLum = Math.min(lum, 255 - lum)
+    //% block="new neopixel on pin $pin"
+    //% pin.defl=neoPin.P0
+    //% blockSetVariable=myNeopixel
+    //% group="On start: Create"
+    //% weight=200
 
-    return {
-      red: Math.idiv(lum - r, minLum),
-      green: Math.idiv(lum - g, minLum),
-      blue: Math.idiv(lum - b, minLum),
-      luminosity: lum
+    export function createNeopixel(pin: neoPin): Neopixel {
+        return new Neopixel(pin)
     }
-  }
 
-  /**
-   * Fade an RGB color by using a brightness parameter, consistent with a luminosity scaling.
-   * @param param A set of parameters obtained from `rgbFadeColorInit(rgb)`.
-   * @param brightness The brightness of the faded color (0 to 100).
-   * @return The faded color defined by RGB components (0 to 0xFFFFFF).
-   *
-   * The function is necessary because the Neopixel library only
-   * allows a brightness setting for the whole strip. Pixel by pixel
-   * brightness has to be controlled through the RGB values. The
-   * function is equivalent to: converting to HSL, scaling L,
-   * converting back to RGB. But it does through a shortcut using
-   * the initial RGB values.
-   */
-  function rgbFadeColor(param: RGBFadeParameters, brightness: number): number {
-    const lum = Math.idiv(param.luminosity * brightness, 100)
-    const minLum = Math.min(lum, 255 - lum)
-    const r = (lum - minLum * param.red) & 0xff
-    const g = (lum - minLum * param.green) & 0xff
-    const b = (lum - minLum * param.blue) & 0xff
+    /**
+     * A class to manage drawing to the Neopixel.
+     * The instance is also used to store breath mappings.
+     */
+    export class Neopixel extends neopixel.Strip {
+        // @neo/class
+        breath: util.BreathData = null
+        draw: () => void = null
 
-    return (r << 16) | (g << 8) | b
-  }
+        constructor(pin: neoPin = neoPin.P0) {
+            super(BoardID.zero, ClickID.Zero, pin, 64, NeoPixelMode.RGBW)
+        }
+
+        // ----------------------------------------------------------------
+        // Drawing methods  @neo/draw
+        // ----------------------------------------------------------------
+
+        /**
+         * Draw the full LED matrix on the Neopixel. Make sure to provide an initialized `Neopixel`.
+         * @param color The color of the matrix (24 bit).
+         * @param brightness The brightness of the matrix (0 to 100).
+         */
+
+        //% block="draw fill on $this(myNeopixel)|color = $color|brightness = $brightness"
+        //% color.shadow=neopixel_colors
+        //% brightness.min=0 brightness.max=100 brightness.defl=10
+        //% inlineInputMode=inline
+        //% advanced=true
+        //% weight=190
+
+        drawFill(color: number, brightness: number = 10): void {
+            util.assert(!!this, util.errorMessage.neopixel)
+            this.clear()
+            this.setBrightness(util.iscale(brightness, 255))
+            this.showColor(color)
+        }
+
+        /**
+         * Draw a diagonal gradient on the Neopixel. Make sure to provide an initialized `Neopixel`.
+         * @param color The color of the gradient (24 bit).
+         * @param brightness The brightness of the matrix (0 to 100).
+         */
+
+        //% block="draw gradient on $this(myNeopixel)|color = $color|brightness = $brightness"
+        //% color.shadow=neopixel_colors
+        //% brightness.min=0 brightness.max=100 brightness.defl=10
+        //% inlineInputMode=inline
+        //% advanced=true
+        //% weight=180
+
+        drawGradient(color: number, brightness: number): void {
+            util.assert(!!this, util.errorMessage.neopixel)
+            this.setBrightness(util.iscale(brightness, 255))
+            const param = rgbFadeColorInit(color)
+            this.clear()
+
+            for (let x = 0; x < 8; x++) {
+                for (let y = 0; y < 8; y++) {
+                    const r = (x + y) / 14
+                    const faded = rgbFadeColor(
+                        param,
+                        (100 * (r * r * r + 0.02)) / 1.02
+                    )
+                    this.setPixelColor(x + 8 * y, faded)
+                }
+            }
+            this.show()
+        }
+
+        /**
+         * Draw a disk on the Neopixel LED matrix. Make sure to provide an initialized `Neopixel`.
+         * @param radius The radius of the disk (0 to 100).
+         * @param color The color of the disk (24 bit).
+         * @param brightness The brightness of the disk (0 to 100).
+         */
+
+        //% block="draw disk on $this(myNeopixel)|radius = $radius|color = $color|brightness = $brightness"
+        //% radius.min=0 radius.max=100 radius.defl=100
+        //% color.shadow=neopixel_colors
+        //% brightness.min=0 brightness.max=100 brightness.defl=10
+        //% inlineInputMode=inline
+        //% advanced=true
+        //% weight=170
+
+        drawDisk(radius: number, color: number, brightness: number = 10): void {
+            util.assert(!!this, util.errorMessage.neopixel)
+            radius = util.iscale(radius, 4)
+            this.setBrightness(util.iscale(brightness, 255))
+
+            // @todo: Brightness gradient by ramping RGB values
+            this.clear()
+            for (let x = 0; x < 8; x++) {
+                for (let y = 0; y < 8; y++) {
+                    if (
+                        Math.sqrt(
+                            (x - 3.5) * (x - 3.5) + (y - 3.5) * (y - 3.5)
+                        ) <= radius
+                    ) {
+                        this.setPixelColor(x + y * 8, color)
+                    }
+                }
+            }
+            this.show()
+        }
+
+        /**
+         * Draw a single bar on the Neopixel LED matrix. Make sure to provide an initialized `Neopixel`.
+         * @param length The length of the bar (0 to 100).
+         * @param color The color of the bar (24 bit).
+         * @param brightness The brightness of the bar (0 to 100).
+         */
+
+        //% block="draw bar on $this(myNeopixel)|length = $length|color = $color|brightness = $brightness"
+        //% length.min=0 length.max=100 length.defl=25
+        //% color.shadow=neopixel_colors
+        //% brightness.min=0 brightness.max=100 brightness.defl=10
+        //% inlineInputMode=inline
+        //% advanced=true
+        //% weight=160
+
+        drawBar(length: number, color: number, brightness: number = 10): void {
+            util.assert(!!this, util.errorMessage.neopixel)
+            length = util.iscale(length, 8)
+            this.setBrightness(util.iscale(brightness, 255))
+
+            this.clear()
+            for (let y = 8 - length; y < 8; y++) {
+                const n = y << 3
+                this.setPixelColor(n + 2, color)
+                this.setPixelColor(n + 3, color)
+                this.setPixelColor(n + 4, color)
+                this.setPixelColor(n + 5, color)
+            }
+            this.show()
+        }
+
+        /**
+         * Draw double bars on the Neopixel LED matrix. Make sure to provide an initialized `Neopixel`.
+         * @param length1 The length of the first bar (0 to 100).
+         * @param color1 The color of the first bar (24 bit).
+         * @param length2 The length of the second bar (0 to 100).
+         * @param color2 The color of the second bar (24 bit).
+         * @param brightness The brightness of the two bars (0 to 100).
+         */
+
+        //% block="draw double bars on $this(myNeopixel)|length 1 = $length1|color 1 = $color1|length 2 = $length2|color 2 = $color2|brightness = $brightness"
+        //% length1.min=0 length1.max=100 length1.defl=25
+        //% color1.shadow=neopixel_colors
+        //% length2.min=0 length2.max=100 length2.defl=25
+        //% color2.shadow=neopixel_colors
+        //% brightness.min=0 brightness.max=100 brightness.defl=10
+        // inlineInputMode=inline
+        //% advanced=true
+        //% weight=150
+
+        drawDoubleBars(
+            length1: number,
+            color1: number = NeoPixelColors.Red,
+            length2: number,
+            color2: number = NeoPixelColors.Red,
+            brightness: number = 10
+        ): void {
+            util.assert(!!this, util.errorMessage.neopixel)
+            length1 = util.iscale(length1, 8)
+            length2 = util.iscale(length2, 8)
+            this.setBrightness(util.iscale(brightness, 255))
+
+            // @todo: Brightness gradient by ramping RGB values
+            this.clear()
+            for (let y = 8 - length1; y < 8; y++) {
+                const n = y * 8
+                this.setPixelColor(n + 0, color1)
+                this.setPixelColor(n + 1, color1)
+                this.setPixelColor(n + 2, color1)
+            }
+            for (let y = 8 - length2; y < 8; y++) {
+                const n = y * 8
+                this.setPixelColor(n + 5, color2)
+                this.setPixelColor(n + 6, color2)
+                this.setPixelColor(n + 7, color2)
+            }
+            this.show()
+        }
+
+        /**
+         * Draw a spiral on a Neopixel LED matrix based on mapped breath data. Make sure to provide an initialized `Neopixel`.
+         * @param length The length of the spiral (0 to 100).
+         * @param color The color of the spiral (24 bit).
+         * @param brightness The brightness of the spiral (0 to 100).
+         */
+
+        //% block="draw spiral on $this(myNeopixel)|length = $length|color = $color|brightness = $brightness"
+        //% length.min=0 length.max=100 length.defl=25
+        //% color.shadow=neopixel_colors
+        //% brightness.min=0 brightness.max=100 brightness.defl=10
+        // inlineInputMode=inline
+        //% advanced=true
+        //% weight=140
+
+        drawSpiral(
+            length: number,
+            color: number,
+            brightness: number = 10
+        ): void {
+            util.assert(!!this, util.errorMessage.neopixel)
+            length = util.iscale(length, 64)
+            this.setBrightness(util.iscale(brightness, 255))
+
+            let n = 36 // (4, 4)
+            const dn = [-8, -1, 8, 1] // up, left, down, right
+            // clockwise is [-1, -8, 1, 8]: left, up, right, down
+
+            this.clear()
+            // Draw each segment or portion of the last segment
+            for (
+                let segmentIndex = 0, count = 0;
+                count < length;
+                segmentIndex++
+            ) {
+                let segmentLength = (segmentIndex >> 1) + 1
+                segmentLength = Math.min(segmentLength, length - count)
+                for (let i = 0; i < segmentLength; i++) {
+                    this.setPixelColor(n, color)
+                    n += dn[segmentIndex % 4]
+                }
+                count += segmentLength
+            }
+            this.show()
+        }
+
+        // ----------------------------------------------------------------
+        // Mapping methods  @neo/map
+        // ----------------------------------------------------------------
+
+        //% block="map $breathData=variables_get(breathData)|to fill $this(myNeopixel)|color: $colorMapId|brightness: $brightnessMapId"
+        //% inlineInputMode=inline
+        //% group="On start: Map"
+        //% weight=190
+
+        mapToFill(
+            breathData: util.BreathData,
+            colorMapId: ColorMaps,
+            brightnessMapId: BrightnessMaps
+        ): void {
+            this.breath = breathData
+            this.draw = ((
+                colorMap: util.Map,
+                brightnessMap: util.Map
+            ) => () => {
+                this.drawFill(colorMap(this.breath), brightnessMap(this.breath))
+            })(getColorMap(colorMapId), getBrightnessMap(brightnessMapId))
+        }
+
+        //% block="map $breathData=variables_get(breathData)|to disk on $this(myNeopixel)|radius: $lengthMapId|color: $colorMapId|brightness: $brightnessMapId"
+        //% inlineInputMode=inline
+        //% group="On start: Map"
+        //% weight=180
+
+        mapToDisk(
+            breathData: util.BreathData,
+            lengthMapId: LengthMaps,
+            colorMapId: ColorMaps,
+            brightnessMapId: BrightnessMaps
+        ): void {
+            this.breath = breathData
+            this.draw = ((
+                lengthMap: util.Map,
+                colorMap: util.Map,
+                brightnessMap: util.Map
+            ) => () => {
+                this.drawDisk(
+                    lengthMap(this.breath),
+                    colorMap(this.breath),
+                    brightnessMap(this.breath)
+                )
+            })(
+                getLengthMap(lengthMapId),
+                getColorMap(colorMapId),
+                getBrightnessMap(brightnessMapId)
+            )
+        }
+
+        //% block="map $breathData=variables_get(breathData)|to bar on $this(myNeopixel)|length: $lengthMapId|color: $colorMapId|brightness: $brightnessMapId"
+        //% inlineInputMode=inline
+        //% group="On start: Map"
+        //% weight=170
+
+        mapToBar(
+            breathData: util.BreathData,
+            lengthMapId: LengthMaps,
+            colorMapId: ColorMaps,
+            brightnessMapId: BrightnessMaps
+        ): void {
+            this.breath = breathData
+            this.draw = ((
+                lengthMap: util.Map,
+                colorMap: util.Map,
+                brightnessMap: util.Map
+            ) => () => {
+                this.drawBar(
+                    lengthMap(this.breath),
+                    colorMap(this.breath),
+                    brightnessMap(this.breath)
+                )
+            })(
+                getLengthMap(lengthMapId),
+                getColorMap(colorMapId),
+                getBrightnessMap(brightnessMapId)
+            )
+        }
+
+        //% block="map $breathData=variables_get(breathData)|to double bars on $this(myNeopixel)|length 1: $lengthMapId1|color 1: $colorMapId1|length 2: $lengthMapId2|color 2: $colorMapId2|brightness: $brightnessMapId"
+        // inlineInputMode=inline
+        //% group="On start: Map"
+        //% weight=160
+
+        mapToDoubleBars(
+            breathData: util.BreathData,
+            lengthMapId1: LengthMaps,
+            colorMapId1: ColorMaps,
+            lengthMapId2: LengthMaps,
+            colorMapId2: ColorMaps,
+            brightnessMapId: BrightnessMaps
+        ): void {
+            this.breath = breathData
+            this.draw = ((
+                lengthMap1: util.Map,
+                colorMap1: util.Map,
+                lengthMap2: util.Map,
+                colorMap2: util.Map,
+                brightnessMap: util.Map
+            ) => () => {
+                this.drawDoubleBars(
+                    lengthMap1(this.breath),
+                    colorMap1(this.breath),
+                    lengthMap2(this.breath),
+                    colorMap2(this.breath),
+                    brightnessMap(this.breath)
+                )
+            })(
+                getLengthMap(lengthMapId1),
+                getColorMap(colorMapId1),
+                getLengthMap(lengthMapId2),
+                getColorMap(colorMapId2),
+                getBrightnessMap(brightnessMapId)
+            )
+        }
+
+        //% block="map $breathData=variables_get(breathData)|to spiral on $this(myNeopixel)|length: $lengthMapId|color: $colorMapId|brightness: $brightnessMapId"
+        //% inlineInputMode=inline
+        //% group="On start: Map"
+        //% weight=150
+
+        mapToSpiral(
+            breathData: util.BreathData,
+            lengthMapId: LengthMaps,
+            colorMapId: ColorMaps,
+            brightnessMapId: BrightnessMaps
+        ): void {
+            this.breath = breathData
+            this.draw = ((
+                lengthMap: util.Map,
+                colorMap: util.Map,
+                brightnessMap: util.Map
+            ) => () => {
+                this.drawSpiral(
+                    lengthMap(this.breath),
+                    colorMap(this.breath),
+                    brightnessMap(this.breath)
+                )
+            })(
+                getLengthMap(lengthMapId),
+                getColorMap(colorMapId),
+                getBrightnessMap(brightnessMapId)
+            )
+        }
+
+        test(
+            // @todo refactor mapping methods
+            func: (
+                a: number,
+                b: number,
+                c: number,
+                d?: number,
+                e?: number
+            ) => void,
+            ids: number[]
+        ): void {
+            let f = function (idss: number[]) {
+                const len = getLengthMap(idss[0])
+                const col = getColorMap(idss[1])
+                const bri = getBrightnessMap(idss[2])
+                return () => {
+                    func(len(this.breath), col(this.breath), bri(this.breath))
+                }
+            }
+        }
+
+        // ----------------------------------------------------------------
+        // Draw the mapping  @neo/do
+        // ----------------------------------------------------------------
+
+        //% block="draw mapping from breath to $this(myNeopixel)"
+        //% inlineInputMode=inline
+        //% group="Forever: Draw"
+        //% weight=200
+
+        drawMapping() {
+            this.draw()
+        }
+    }
+
+    /**
+     * Interface for temporary color parameters used to fade a color by luminosity.
+     */
+    interface RGBFadeParameters {
+        red: number
+        green: number
+        blue: number
+        luminosity: number
+    }
+
+    /**
+     * Initial calculation to get the color parameters to fade a color by luminosity.
+     * @param rgb A color defined by RGB components (0 to 0xFFFFFF).
+     * @return Color parameters used to calculated faded shades by luminosity.
+     */
+    function rgbFadeColorInit(rgb: number): RGBFadeParameters {
+        const r = (rgb >> 16) & 0xff
+        const g = (rgb >> 8) & 0xff
+        const b = (rgb >> 0) & 0xff
+        const lum =
+            (Math.max(Math.max(r, g), b) + Math.min(Math.min(r, g), b)) >> 1
+        const minLum = Math.min(lum, 255 - lum)
+
+        return {
+            red: Math.idiv(lum - r, minLum),
+            green: Math.idiv(lum - g, minLum),
+            blue: Math.idiv(lum - b, minLum),
+            luminosity: lum
+        }
+    }
+
+    /**
+     * Fade an RGB color by using a brightness parameter, consistent with a luminosity scaling.
+     * @param param A set of parameters obtained from `rgbFadeColorInit(rgb)`.
+     * @param brightness The brightness of the faded color (0 to 100).
+     * @return The faded color defined by RGB components (0 to 0xFFFFFF).
+     *
+     * The function is necessary because the Neopixel library only
+     * allows a brightness setting for the whole strip. Pixel by pixel
+     * brightness has to be controlled through the RGB values. The
+     * function is equivalent to: converting to HSL, scaling L,
+     * converting back to RGB. But it does through a shortcut using
+     * the initial RGB values.
+     */
+    function rgbFadeColor(
+        param: RGBFadeParameters,
+        brightness: number
+    ): number {
+        const lum = Math.idiv(param.luminosity * brightness, 100)
+        const minLum = Math.min(lum, 255 - lum)
+        const r = (lum - minLum * param.red) & 0xff
+        const g = (lum - minLum * param.green) & 0xff
+        const b = (lum - minLum * param.blue) & 0xff
+
+        return (r << 16) | (g << 8) | b
+    }
 }
 
 /****************************************************************
@@ -703,584 +1189,288 @@ namespace bioW_Neopixel {
 //% icon="\uf08b" sign-out
 // icon="\uf289" mixcloud
 // icon="\uf21e" heartbeat
-// groups=["Start block", "Sensor data", "Target breath"]
-// @problem The space in the group name causes an issue.
-// But it works by removing the line (// vs //%).
 
-//breath
 namespace bioW_Breath {
-  // The number of samples used to calculate the velocity
-  const accuracy = 5
-  // The sampling period used in the independent forever loop
-  const period = 50
+    // @breath/top
+    // The number of samples used to calculate the velocity
+    const accuracy = 5
+    // The sampling period used in the independent forever loop
+    const samplingPeriod = 50
 
-  // @todo Actually not necessary
-  export enum ConnectedTo {
-    BBoard,
-    Microbit
-  }
+    /**
+     * Create an object to manage a breath sensor connected to the micro:bit or the b.Board.
+     * @param pin The pin to which the breath sensor is connected.
+     * @return A new `BreathSensor` object.
+     */
 
-  /**
-   * Create an object to manage a breath sensor connected to the b.Board.
-   * @param pin The pin to which the breath sensor is connected.
-   * @return A new `BreathSensor` object.
-   */
+    //% block="new breath sensor on pin $pin"
+    //% pin.defl=AnalogPin.P2
+    //% blockSetVariable="breathData"
+    //% group="On start: Create"
+    //% weight=200
 
-  //% block="new breath sensor on b.Board|on $pin"
-  //% pin.defl=AnalogPin.P2
-  //% blockSetVariable="breathSensor"
-  //% group="Start block"
-  //% weight=200
-
-  export function createBreathSensorBBoard(pin: AnalogPin): BreathSensor {
-    return new BreathSensor(ConnectedTo.BBoard, pin)
-  }
-
-  /**
-   * Create an object to manage a breath sensor connected to the micro:bit.
-   * @param pin The pin to which the breath sensor is connected.
-   * @return A new `BreathSensor` object.
-   */
-
-  //% block="new breath sensor on micro:bit|on $pin"
-  //% pin.defl=AnalogPin.P2
-  //% blockSetVariable="breathSensor"
-  //% group="Start block"
-  //% weight=190
-
-  export function createBreathSensorMicrobit(pin: AnalogPin): BreathSensor {
-    return new BreathSensor(ConnectedTo.Microbit, pin)
-  }
-
-  /**
-   * A class to manage the inputs from the breath sensor.
-   * Creating a new instance starts a forever loop to poll the sensor,
-   * store the value, and calculate the associated values.
-   */
-  export class BreathSensor {
-    position: number = 0
-    velocity: number = 0
-    frequency: number = 0
-
-    targetPosition: number = 0
-    targetVelocity: number = 0
-    targetFrequency: number = 12
-
-    index: number = 0
-    positions: number[] // = [0,0,0,0,0] @todo when length finalized
-    timestamps: number[] // = [0,0,0,0,0]
-
-    timeAtFreqChange: number = 0
-    phaseAtFreqChange: number = 0
-    stream: boolean = false
-
-    constructor(private connection: ConnectedTo, private pin: AnalogPin) {
-      this.positions = []
-      this.timestamps = []
-      for (let i = 0; i < accuracy; i++) {
-        this.positions.push(0)
-        this.timestamps.push(0)
-      }
-      this.startInputLoop()
+    export function createBreathSensor(pin: AnalogPin): BreathSensor {
+        return new BreathSensor(pin)
     }
 
     /**
-     * Read the sensor data on a separate forever loop
-     * for better consistency in timing and to avoid issues
-     * such as multiple readings in the basic forever loop.
+     * A class to manage the inputs from the breath sensor.
+     * Creating a new instance starts a forever loop to poll the sensor,
+     * store the value, and calculate the associated values.
      */
-    startInputLoop() {
-      control.inBackground(() => {
-        while (true) {
-          const time = input.runningTime()
-          const index = this.index % accuracy
+    export class BreathSensor {
+        // @breath/class
+        position: number = 0
+        velocity: number = 0
+        frequency: number = 0
 
-          // New position and time
-          this.position = pins.analogReadPin(this.pin)
-          this.timestamps[index] = time
-          this.position = (100 / 1023) * this.position
-          this.positions[index] = this.position
+        targetPosition: number = 0
+        targetVelocity: number = 0
+        targetFrequency: number = 12
 
-          // Velocity
-          // @todo Just trying central finite difference with 5 values for now
-          this.velocity =
-            (200 *
-              (this.positions[(index - 4) % accuracy] -
-                8 * this.positions[(index - 3) % accuracy] +
-                8 * this.positions[(index - 1) % accuracy] -
-                this.positions[index])) /
-              (12 * period) +
-            50
+        index: number = 0 // for ring buffers
+        positions: number[] // = [0,0,0,0,0] @todo when length finalized
+        timestamps: number[] // = [0,0,0,0,0]
 
-          // Target position and velocity
-          // Keep track of frequency changes to avoid discontinuities
-          const phase =
-            0.00425 * this.targetFrequency * (time - this.timeAtFreqChange) +
-            this.phaseAtFreqChange
-          this.targetPosition = 0.393701 * (Math.isin(phase) - 1)
-          this.targetVelocity = 0.393701 * (Math.isin(phase + 64) - 1)
+        // To avoid discontinuities in target breath on frequency changes
+        timeAtFreqChange: number = 0
+        phaseAtFreqChange: number = 0
 
-          // Radio streaming
-          if (this.stream) {
-            const buffer = pins.createBuffer(12)
-            buffer.setNumber(NumberFormat.Float32LE, 0, this.position)
-            buffer.setNumber(NumberFormat.Float32LE, 4, this.velocity)
-            buffer.setNumber(NumberFormat.Float32LE, 8, this.frequency)
-            radio.sendBuffer(buffer)
-          }
+        // To stream over radio
+        stream: boolean = false
 
-          // @debug
-          // serial.writeValue("delta_time", this.timestamps[index] - this.timestamps[(index - 1) % accuracy])
-          // serial.writeValue("position", this._position)
-          // serial.writeValue("velocity", this._velocity)
-
-          this.index++
-          basic.pause(period) // @todo try to improve polling accuracy
+        // Constructor
+        constructor(private pin: AnalogPin) {
+            // Initialize arrays
+            this.positions = []
+            this.timestamps = []
+            for (let i = 0; i < accuracy; i++) {
+                this.positions.push(0)
+                this.timestamps.push(0)
+            }
+            // Start sampling loop
+            control.inBackground(() => {
+                this.samplingLoop()
+            })
         }
-      })
+
+        // @todo Could also try `control.setInterval()` and compare.
+        //
+        // https://github.com/microsoft/pxt-common-packages/blob/f460cc8ac025fc93ac82cd9d5dcb61b47e3a2dfb/libs/base/scheduling.ts
+        // control.setInterval(function() { }, 0, control.IntervalMode.Interval)
+        //
+        // control.setInterval(
+        //     () => {
+        //         this.samplingLoop()
+        //     },
+        //     period,
+        //     control.IntervalMode.Interval
+        // )
+
+        /**
+         * Change the target frequency and adjust the phase calculation.
+         */
+        changeFrequency(newFrequency: number = 12): void {
+            if (newFrequency !== this.targetFrequency) {
+                const time = input.runningTime()
+                this.phaseAtFreqChange =
+                    0.00425 *
+                        this.targetFrequency *
+                        (time - this.timeAtFreqChange) +
+                    this.phaseAtFreqChange
+                this.timeAtFreqChange = time
+                this.targetFrequency = newFrequency
+            }
+        }
+
+        /**
+         * Read the sensor data on a separate forever loop
+         * for more reliable sampling frequency and to avoid issues
+         * such as multiple readings in the public forever loop.
+         */
+        samplingLoop() {
+            // @todo Improve by only doing what is necessary based on mapping requests.
+            while (true) {
+                const time = input.runningTime()
+                const index = this.index % accuracy
+
+                // New position and time
+                this.position = pins.analogReadPin(this.pin)
+                this.timestamps[index] = time
+                this.position = (100 / 1023) * this.position
+                this.positions[index] = this.position
+
+                // Velocity
+                // @todo Just trying central finite difference with 5 values for now
+                this.velocity =
+                    (200 *
+                        (this.positions[(index - 4) % accuracy] -
+                            8 * this.positions[(index - 3) % accuracy] +
+                            8 * this.positions[(index - 1) % accuracy] -
+                            this.positions[index])) /
+                        (12 * samplingPeriod) +
+                    50
+
+                // Target position and velocity
+                // Keep track of frequency changes to avoid discontinuities
+                const phase =
+                    0.00425 *
+                        this.targetFrequency *
+                        (time - this.timeAtFreqChange) +
+                    this.phaseAtFreqChange
+                this.targetPosition = 0.393701 * (Math.isin(phase) - 1)
+                this.targetVelocity = 0.393701 * (Math.isin(phase + 64) - 1)
+
+                // Radio streaming
+                // @todo Should we also send target data?
+                if (this.stream) {
+                    const buffer = pins.createBuffer(12)
+                    buffer.setNumber(NumberFormat.Float32LE, 0, this.position)
+                    buffer.setNumber(NumberFormat.Float32LE, 4, this.velocity)
+                    buffer.setNumber(NumberFormat.Float32LE, 8, this.frequency)
+                    radio.sendBuffer(buffer)
+                }
+
+                // @debug
+                // serial.writeValue("delta_time", this.timestamps[index] - this.timestamps[(index - 1) % accuracy])
+                // serial.writeValue("position", this._position)
+                // serial.writeValue("velocity", this._velocity)
+
+                this.index++
+                basic.pause(samplingPeriod) // @todo try to improve sampling accuracy
+            }
+        }
     }
-  }
 
-  /**
-   * Get the current breathing position. Make sure to provide an initialized `BreathSensor`.
-   * @param breathSensor The breathing sensor object.
-   * @return The breathing position.
-   */
+    // ----------------------------------------------------------------
+    // Getters  @breath/get
+    // ----------------------------------------------------------------
 
-  //% block="$breathSensor=variables_get(breathSensor) position"
-  //% group="Sensor data"
-  //% weight=200
+    /**
+     * Get the breathing position from an object with a `BreathData` interface.
+     * @param breathSource A source of breath data such as `BreathSensor` or `BreathOverRadio`.
+     * @return The breathing position.
+     */
 
-  export function position(breathSensor: BreathSensor = null): number {
-    util.assert(!!breathSensor, util.errorMessage.breath)
-    return breathSensor.position
-  }
+    //% block="$breathData=variables_get(breathData) position"
+    //% advanced=true
+    //% weight=200
 
-  /**
-   * Get the current breathing velocity. Make sure to provide an initialized `BreathSensor`.
-   * @param breathSensor The breathing sensor object.
-   * @return The breathing velocity.
-   */
-
-  //% block="$breathSensor=variables_get(breathSensor) velocity"
-  //% group="Sensor data"
-  //% weight=190
-
-  export function velocity(breathSensor: BreathSensor = null): number {
-    util.assert(!!breathSensor, util.errorMessage.breath)
-    return breathSensor.velocity
-  }
-
-  /**
-   * Get the current breathing frequency. Make sure to provide an initialized `BreathSensor`.
-   * @param breathSensor The breathing sensor object.
-   * @return The breathing frequency.
-   */
-
-  //% block="$breathSensor=variables_get(breathSensor) frequency"
-  //% group="Sensor data"
-  //% weight=180
-
-  export function frequency(breathSensor: BreathSensor = null): number {
-    util.assert(!!breathSensor, util.errorMessage.breath)
-    return breathSensor.frequency
-  }
-
-  /**
-   * A sinusoidal oscillator to simulate breath for instance.
-   * Changing the frequency creates a discontinuity.
-   * @param frequency The frequency of the oscillator (cycles per minute).
-   * @param shift The phase shift (0 to 360).
-   * @return The oscillator value (0 to 100).
-   */
-
-  //% block="cycle $frequency times per min|with a $shift shift"
-  //% frequency.min=2 frequency.max=30 frequency.defl=12
-  //% shift.min=0 shift.max=360 shift.defl=0
-  //% group="Utility"
-  //% weight=200
-
-  export function oscillator(frequency: number, shift: number): number {
-    // Using regular Math.sin():
-    // 50 * (Math.sin(Math.PI * frequency * input.runningTime() / 30000) + 1)
-    // Using faster Math.isin() approximation ([0 - 255] to [1 - 128 - 255])
-    // 100 / 254 * (Math.isin(255 * frequency * input.runningTime() / 60000) - 1)
-
-    return (
-      (100 / 254) *
-      Math.isin(
-        0.00425 * frequency * input.runningTime() - 1 + (255 / 360) * shift
-      )
-    )
-  }
-}
-
-/****************************************************************
- * Mappings
- */
-
-//% weight=190
-//% color=#F7931E
-//% icon="\uf279" map
-// icon="\uf0a9" arrow circle right
-// groups=["Start block", "Mapping output"]
-
-//mapping
-namespace bioW_Mapping {
-  export enum LengthMapType {
-    Constant = 0,
-    Position,
-    Velocity,
-    Frequency,
-    //% block="Target position"
-    TargetPosition,
-    //% block="Target velocity"
-    TargetVelocity,
-    //% block="Target frequency"
-    TargetFrequency
-  }
-
-  export enum ColorMapType {
-    Constant = 0,
-    Position,
-    Velocity,
-    Frequency,
-    //% block="Target position"
-    TargetPosition,
-    //% block="Target velocity"
-    TargetVelocity,
-    //% block="Target frequency"
-    TargetFrequency,
-    //% block="Zero crossing"
-    ZeroCrossing,
-    //% block="Increment Color"
-    IncrementColor
-  }
-
-  export enum BrightnessMapType {
-    Constant = 0,
-    Position,
-    Velocity,
-    Frequency,
-    //% block="Target position"
-    TargetPosition,
-    //% block="Target velocity"
-    TargetVelocity,
-    //% block="Target frequency"
-    TargetFrequency
-  }
-
-  export enum MotorMapType {
-    Off = 0,
-    Position,
-    Velocity,
-    Frequency,
-    //% block="Target position"
-    TargetPosition,
-    //% block="Target velocity"
-    TargetVelocity,
-    //% block="Target frequency"
-    TargetFrequency
-  }
-
-  type Map = () => number
-
-  interface MappingInterface {
-    length1: Map
-    length2: Map
-    color: Map
-    brightness: Map
-    motor: Map
-  }
-
-  //% block="new mapping from $breath=variables_get(breathSensor)|length mapping 1: $length1|length mapping 2: $length2|color mapping: $color|brightness mapping: $brightness|motor mapping: $motor"
-  //% length1.defl=LengthMapType.TargetPosition
-  //% length2.defl=LengthMapType.TargetVelocity
-  //% brightness.defl=BrightnessMapType.TargetPosition
-  //% blockSetVariable=myMapping
-  //% group="Start block"
-  //% weight=200
-
-  export function createMapping(
-    breath: util.BreathData,
-    length1: LengthMapType,
-    length2: LengthMapType,
-    color: ColorMapType,
-    brightness: BrightnessMapType,
-    motor: MotorMapType
-  ): Mapping {
-    return new Mapping(breath, length1, length2, color, brightness, motor)
-  }
-
-  //% block="new default mapping from $breath=variables_get(breathSensor)"
-  //% blockSetVariable=myMapping
-  //% group="Start block"
-  //% weight=190
-
-  export function createDefaultMapping(breath: util.BreathData): Mapping {
-    return new Mapping(breath)
-  }
-
-  /**
-   * Get the current first length calculated by the mapping.
-   * Make sure to provide an initialized `Mapping`.
-   * @param myMapping The mapping object.
-   * @return The first length.
-   */
-
-  //% block="$myMapping=variables_get(myMapping) length 1"
-  //% group="Mapping output"
-  //% weight=200
-
-  export function length1(myMapping: MappingInterface = null): number {
-    util.assert(!!myMapping, util.errorMessage.mapping)
-    return myMapping.length1()
-  }
-
-  /**
-   * Get the current second length calculated by the mapping.
-   * Make sure to provide an initialized `Mapping`.
-   * @param myMapping The mapping object.
-   * @return The second length.
-   */
-
-  //% block="$myMapping=variables_get(myMapping) length 2"
-  //% group="Mapping output"
-  //% weight=190
-
-  export function length2(myMapping: MappingInterface = null): number {
-    util.assert(!!myMapping, util.errorMessage.mapping)
-    return myMapping.length2()
-  }
-
-  /**
-   * Get the current color calculated by the mapping.
-   * Make sure to provide an initialized `Mapping`.
-   * @param myMapping The mapping object.
-   * @return The color.
-   */
-
-  //% block="$myMapping=variables_get(myMapping) color"
-  //% group="Mapping output"
-  //% weight=180
-
-  export function color(myMapping: MappingInterface = null): number {
-    util.assert(!!myMapping, util.errorMessage.mapping)
-    return myMapping.color()
-  }
-
-  /**
-   * Get the current brightness calculated by the mapping.
-   * Make sure to provide an initialized `Mapping`.
-   * @param myMapping The mapping object.
-   * @return The brightness.
-   */
-
-  //% block="$myMapping=variables_get(myMapping) brightness"
-  //% group="Mapping output"
-  //% weight=170
-
-  export function brightness(myMapping: MappingInterface = null): number {
-    util.assert(!!myMapping, util.errorMessage.mapping)
-    return myMapping.brightness()
-  }
-
-  /**
-   * Get the current color calculated by the mapping.
-   * Make sure to provide an initialized `Mapping`.
-   * @param myMapping The mapping object.
-   * @return The color.
-   */
-
-  // block="$myMapping=variables_get(myMapping) color"
-  // group="Mapping output"
-  // weight=160
-
-  function brightnessNP(myMapping: MappingInterface = null): number {
-    util.assert(!!myMapping, util.errorMessage.mapping)
-    return myMapping.color()
-  }
-
-  /**
-   * A class to manage mappings from the breathing data.
-   */
-  export class Mapping {
-    length1: Map
-    length2: Map
-    color: Map
-    brightness: Map
-    motor: Map
-
-    constructor(
-      private breath: util.BreathData = null,
-      private lengthMapType: LengthMapType = LengthMapType.Position,
-      private lengthMapType2: LengthMapType = LengthMapType.Constant,
-      private colorMapType: ColorMapType = ColorMapType.Constant,
-      private brightnessMapType: BrightnessMapType = BrightnessMapType.Constant,
-      private motorMapType: MotorMapType = MotorMapType.Off
-    ) {
-      switch (lengthMapType) {
-        default:
-        case LengthMapType.Constant:
-          this.length1 = () => {
-            return 100
-          }
-          break
-        case LengthMapType.Position:
-          this.length1 = () => {
-            return this.breath.position
-          }
-          break
-        case LengthMapType.Velocity:
-          this.length1 = () => {
-            return this.breath.velocity
-          }
-          break
-        case LengthMapType.TargetPosition:
-          this.length1 = () => {
-            return this.breath.targetPosition
-          }
-          break
-        case LengthMapType.TargetVelocity:
-          this.length1 = () => {
-            return this.breath.targetVelocity
-          }
-          break
-      }
-
-      switch (lengthMapType2) {
-        default:
-        case LengthMapType.Constant:
-          this.length2 = () => {
-            return 100
-          }
-          break
-        case LengthMapType.Position:
-          this.length2 = () => {
-            return this.breath.position
-          }
-          break
-        case LengthMapType.Velocity:
-          this.length2 = () => {
-            return this.breath.velocity
-          }
-          break
-        case LengthMapType.TargetPosition:
-          this.length2 = () => {
-            return this.breath.targetPosition
-          }
-          break
-        case LengthMapType.TargetVelocity:
-          this.length2 = () => {
-            return this.breath.targetVelocity
-          }
-          break
-      }
-
-      switch (colorMapType) {
-        default:
-        case ColorMapType.Constant:
-          this.color = () => {
-            return NeoPixelColors.Red
-          }
-          break
-        case ColorMapType.TargetPosition:
-          this.color = newTargetPositionColorMap(this.breath)
-          break
-      }
-
-      switch (brightnessMapType) {
-        default:
-        case BrightnessMapType.Constant:
-          this.brightness = () => {
-            return 100
-          }
-          break
-        case BrightnessMapType.Position:
-          this.brightness = () => {
-            return this.breath.position
-          }
-          break
-        case BrightnessMapType.Velocity:
-          this.brightness = () => {
-            return this.breath.velocity
-          }
-          break
-        case BrightnessMapType.TargetPosition:
-          this.brightness = () => {
-            return this.breath.targetPosition
-          }
-          break
-        case BrightnessMapType.TargetVelocity:
-          this.brightness = () => {
-            return this.breath.targetVelocity
-          }
-          break
-      }
+    export function position(breathData: util.BreathData = null): number {
+        util.assert(!!breathData, util.errorMessage.breath)
+        return breathData.position
     }
-  }
 
-  function newTargetPositionColorMap(
-    breath: util.BreathData = null,
-    delta: number = 20,
-    close: Color = NeoPixelColors.Green,
-    medium: Color = NeoPixelColors.Blue,
-    far: Color = NeoPixelColors.Red
-  ): Map {
-    return () => {
-      const d = Math.abs(breath.position - breath.targetPosition)
-      if (d <= delta) {
-        return close
-      } else if (d <= 2 * delta) {
-        return medium
-      } else {
-        return far
-      }
+    /**
+     * Get the breathing velocity from an object with a `BreathData` interface.
+     * @param breathSource A source of breath data such as `BreathSensor` or `BreathOverRadio`.
+     * @return The breathing velocity.
+     */
+
+    //% block="$breathData=variables_get(breathData) velocity"
+    //% advanced=true
+    //% weight=190
+
+    export function velocity(breathData: util.BreathData = null): number {
+        util.assert(!!breathData, util.errorMessage.breath)
+        return breathData.velocity
     }
-  }
 
-  // Using classes:
-  // ==============
-  // class TargetPositionColorMap {
-  //     color: Map
-  //     constructor (
-  //         private delta: number = 20,
-  //         private close: Color = NeoPixelColors.Green,
-  //         private medium: Color = NeoPixelColors.Blue,
-  //         private far: Color = NeoPixelColors.Red) {
-  //
-  //         this.color = (breath: util.BreathData) => {
-  //             const d = Math.abs(breath.position - bioW_Breath.targetPosition(12))
-  //             if (d <= this.delta) {
-  //                 return this.close
-  //             } else if (d <= 2 * this.delta) {
-  //                 return this.medium
-  //             } else {
-  //                 return this.far
-  //             }
-  //         }
-  //     }
-  // }
+    /**
+     * Get the breathing frequency from an object with a `BreathData` interface.
+     * @param breathSource A source of breath data such as `BreathSensor` or `BreathOverRadio`.
+     * @return The breathing frequency.
+     */
 
-  // Using closures:
-  // ===============
-  // function newTargetPositionColorMap(
-  //     delta: number = 20,
-  //     close: Color = NeoPixelColors.Green,
-  //     medium: Color = NeoPixelColors.Blue,
-  //     far: Color = NeoPixelColors.Red): Map {
-  //
-  //     return (breath: util.BreathData) => {
-  //         const d = Math.abs(breath.position - bioW_Breath.targetPosition(12))
-  //         if (d <= delta) {
-  //             return close
-  //         } else if (d <= 2 * delta) {
-  //             return medium
-  //         } else {
-  //             return far
-  //         }
-  //     }
-  // }
+    //% block="$breathData=variables_get(breathData) frequency"
+    //% advanced=true
+    //% weight=180
+
+    export function frequency(breathData: util.BreathData = null): number {
+        util.assert(!!breathData, util.errorMessage.breath)
+        return breathData.frequency
+    }
+
+    /**
+     * Get the target breathing position from an object with a `BreathData` interface.
+     * @param breathSource A source of breath data such as `BreathSensor` or `BreathOverRadio`.
+     * @return The breathing position.
+     */
+
+    //% block="$breathData=variables_get(breathData) target position"
+    //% advanced=true
+    //% weight=170
+
+    export function targetPosition(breathData: util.BreathData = null): number {
+        util.assert(!!breathData, util.errorMessage.breath)
+        return breathData.targetPosition
+    }
+
+    /**
+     * Get the target breathing velocity from an object with a `BreathData` interface.
+     * @param breathSource A source of breath data such as `BreathSensor` or `BreathOverRadio`.
+     * @return The breathing velocity.
+     */
+
+    //% block="$breathData=variables_get(breathData) target velocity"
+    //% advanced=true
+    //% weight=160
+
+    export function targetVelocity(breathData: util.BreathData = null): number {
+        util.assert(!!breathData, util.errorMessage.breath)
+        return breathData.targetVelocity
+    }
+
+    /**
+     * Get the breathing frequency from an object with a `BreathData` interface.
+     * @param breathSource A source of breath data such as `BreathSensor` or `BreathOverRadio`.
+     * @return The breathing frequency.
+     */
+
+    //% block="$breathData=variables_get(breathData) target frequency"
+    //% advanced=true
+    //% weight=150
+
+    export function targetFrequency(
+        breathData: util.BreathData = null
+    ): number {
+        util.assert(!!breathData, util.errorMessage.breath)
+        return breathData.targetFrequency
+    }
+
+    // ----------------------------------------------------------------
+    // Oscillator  @breath/osc
+    // ----------------------------------------------------------------
+
+    /**
+     * A sinusoidal oscillator to simulate breath for instance.
+     * Changing the frequency creates a discontinuity.
+     * @param frequency The frequency of the oscillator (cycles per minute).
+     * @param shift The phase shift (0 to 360).
+     * @return The oscillator value (0 to 100).
+     */
+
+    //% block="cycle $frequency times per min|with a $shift shift"
+    //% frequency.min=2 frequency.max=30 frequency.defl=12
+    //% shift.min=0 shift.max=360 shift.defl=0
+    //% group="Utility"
+    //% weight=200
+
+    export function oscillator(frequency: number, shift: number): number {
+        // Using regular Math.sin():
+        // 50 * (Math.sin(Math.PI * frequency * input.runningTime() / 30000) + 1)
+        // Using faster Math.isin() approximation ([0 - 255] to [1 - 128 - 255])
+        // 100 / 254 * (Math.isin(255 * frequency * input.runningTime() / 60000) - 1)
+
+        return (
+            (100 / 254) *
+            Math.isin(
+                0.00425 * frequency * input.runningTime() -
+                    1 +
+                    (255 / 360) * shift
+            )
+        )
+    }
 }
 
 /****************************************************************
@@ -1292,35 +1482,182 @@ namespace bioW_Mapping {
 //% icon="\uf085" cogs (same as generic BBoard_Motor)
 // icon="\uf013" cog
 // icon="\uf185" sun
-//% groups=["Initialize", "Use"]
 
-//motor
 namespace bioW_Motor {
-  /**
-   * A class to manage receiving values from a breath sensor connected to another micro:bit.
-   */
-  export class Motor {
-    side: bBoard_Motor.motorDriver = bBoard_Motor.motorDriver.right
+    // @mot/top
+    /**
+     * Enumeration of all possible mappings for the motor speed.
+     */
+    export enum SpeedMaps {
+        Off = 0,
+        Velocity,
+        Frequency,
+        //% block="Target position"
+        TargetPosition,
+        //% block="Target velocity"
+        TargetVelocity,
+        //% block="Target Frequency Slow"
+        TargetFrequencySlow,
+        //% block="Target Frequency Fast"
+        TargetFrequencyFast,
+        //% block="Delta frequency"
+        DeltaFrequency,
+        //% block="Exhale Only"
+        ExhaleOnly,
+        //% block="Physical Simulation"
+        PhysicalSimulation
+    }
 
-    // let leftMotor = bBoard_Motor.createMotor(BoardID.zero, ClickID.Zero, )
+    /**
+     * Get a map from breath data to motor speed.
+     * @param speedMapId The id of the chosen speed mapping.
+     * @return A `Map` of type `(BreathData) => number`.
+     */
+    function getSpeedMap(speedMapId: SpeedMaps): util.Map {
+        switch (speedMapId) {
+            default:
+                throw 'Unexpected speedMapId' // @debug
+            case SpeedMaps.Off:
+                return (breathData) => {
+                    return 0
+                }
+            case SpeedMaps.Velocity:
+                return (breathData) => {
+                    return 0
+                }
+            case SpeedMaps.Frequency:
+                return (breathData) => {
+                    return 0
+                }
+            case SpeedMaps.TargetPosition:
+                return (breathData) => {
+                    return 0
+                }
+            case SpeedMaps.TargetVelocity:
+                return (breathData) => {
+                    return 0
+                }
+            case SpeedMaps.TargetFrequencySlow:
+                return (breathData) => {
+                    return 0
+                }
+            case SpeedMaps.TargetFrequencyFast:
+                return (breathData) => {
+                    return 0
+                }
+            case SpeedMaps.DeltaFrequency:
+                return (breathData) => {
+                    return 0
+                }
+            case SpeedMaps.ExhaleOnly:
+                return (breathData) => {
+                    return 0
+                }
+            case SpeedMaps.PhysicalSimulation:
+                return (breathData) => {
+                    return 0
+                }
+        }
+    }
 
-    constructor(group: number) {}
-  }
+    /**
+     * Enumeration of all possible mappings for the motor direction.
+     */
+    export enum DirectionMaps {
+        Constant,
+        Velocity,
+        //% block="Target velocity"
+        TargetVelocity,
+        //% block="Delta frequency"
+        TargetFrequency
+    }
 
-  /**
-   * Create an object to manage receiving values from a breath sensor connected to another micro:bit.
-   * @param group The group ID for radio communications.
-   * @return A new `BreathOverRadio` object.
-   */
+    /**
+     * Get a map from breath data to motor direction.
+     * @param directionMapId The id of the chosen direction mapping.
+     * @return A `Map` of type `(BreathData) => number`.
+     */
+    function getDirectionMap(directionMapId: DirectionMaps): util.Map {
+        Direction
+        switch (directionMapId) {
+            default:
+                throw 'Unexpected directionMapId' // @debug
+            case DirectionMaps.Constant:
+                return (breathData) => {
+                    return bBoard_Motor.motorDirection.forward
+                }
+            case DirectionMaps.Velocity:
+                return (breathData) => {
+                    return bBoard_Motor.motorDirection.forward
+                }
+            case DirectionMaps.TargetVelocity:
+                return (breathData) => {
+                    return bBoard_Motor.motorDirection.forward
+                }
+            case DirectionMaps.TargetFrequency:
+                return (breathData) => {
+                    return bBoard_Motor.motorDirection.forward
+                }
+        }
+    }
 
-  //% block="new motor|on side $side"
-  //% blockSetVariable="myMotor"
-  //% group="Start block"
-  //% weight=200
+    /**
+     * Create a new motor.
+     * @param side The side of the b.Board to which the motor is connected.
+     * @return A new `Motor` object.
+     */
 
-  export function createBreathOverRadio(side: bBoard_Motor.motorDriver): Motor {
-    return new Motor(side)
-  }
+    //% block="new motor on $side side"
+    //% blockSetVariable="myMotor"
+    //% group="On start: Create"
+    //% weight=200
+
+    export function createMotor(side: bBoard_Motor.motorDriver): Motor {
+        return new Motor(side)
+    }
+
+    /**
+     * A class to manage receiving values from a breath sensor connected to another micro:bit.
+     */
+    export class Motor extends bBoard_Motor.BBOARD_MOTOR {
+        // @mot/class
+        breath: util.BreathData = null
+        speedMap: util.Map = null
+        directionMap: util.Map = null
+
+        constructor(
+            side: bBoard_Motor.motorDriver = bBoard_Motor.motorDriver.right
+        ) {
+            super(BoardID.zero, ClickID.Zero, side)
+        }
+
+        //% block="map $breathData=variables_get(breathData) to run $this(myMotor)|speed: $speedMapId|direction: $directionMapId"
+        //% inlineInputMode=inline
+        //% group="On start: Map"
+        //% weight=200
+
+        setMapping(
+            breathData: util.BreathData,
+            speedMapId: SpeedMaps,
+            directionMapId: DirectionMaps
+        ): void {
+            this.breath = breathData
+            this.speedMap = getSpeedMap(speedMapId)
+            this.directionMap = getDirectionMap(directionMapId)
+        }
+
+        //% block="run mapping from breath to $this(myMotor)"
+        //% inlineInputMode=inline
+        //% group="Forever: Run"
+        //% weight=200
+
+        run(): void {
+            this.motorDutyDirection(
+                this.speedMap(this.breath),
+                this.directionMap(this.breath)
+            )
+        }
+    }
 }
 
 /****************************************************************
@@ -1330,162 +1667,133 @@ namespace bioW_Motor {
 //% weight=150
 //% color=#F7931E
 //% icon="\uf012" signal (same as generic Radio)
-//% groups=["Sender", "Receiver"]
 
-//radio
 namespace bioW_Radio {
-  /**
-   * Start streaming values over radio from a `BreathSensor` object. Make sure to have it initialized.
-   * @param breathSensor A `BreathSensor` object to stream from.
-   * @param group The group ID for radio communications.
-   * @param power The output power of the radio sender.
-   */
-
-  //% block="$breathSensor=variables_get(breathSensor)|start sending|on group $group|with power of $power"
-  //% group.min=0 group.max=255 group.defl=0
-  //% power.min=0 power.max=7 power.defl=6
-  //% expandableArgumentMode="toggle"
-  //% group="Sender"
-  //% weight=200
-
-  export function startRadioStreaming(
-    breathSensor: bioW_Breath.BreathSensor,
-    group: number = 0,
-    power: number = 7
-  ): void {
-    util.assert(!!breathSensor, util.errorMessage.breath)
-    radio.setGroup(group)
-    radio.setTransmitPower(power)
-    breathSensor.stream = true
-  }
-
-  /**
-   * Stop streaming values over radio from a `BreathSensor` object. Make sure to have it initialized.
-   * @param breathSensor A `BreathSensor` object to stop streaming from.
-   */
-
-  //% block="$breathSensor=variables_get(breathSensor)|stop sending"
-  //% group="Sender"
-  //% weight=190
-
-  export function stopRadioStreaming(
-    breathSensor: bioW_Breath.BreathSensor
-  ): void {
-    util.assert(!!breathSensor, util.errorMessage.breath)
-    breathSensor.stream = false
-  }
-
-  /**
-   * A class to manage receiving values from a breath sensor connected to another micro:bit.
-   */
-  export class BreathOverRadio {
-    position: number = 0
-    velocity: number = 0
-    frequency: number = 0
-
-    constructor(group: number) {
-      radio.setGroup(group & 0xff)
-      radio.onReceivedBuffer((buffer) => {
-        this.position = buffer.getNumber(NumberFormat.Float32LE, 0)
-        this.velocity = buffer.getNumber(NumberFormat.Float32LE, 4)
-        this.frequency = buffer.getNumber(NumberFormat.Float32LE, 8)
-      })
+    // @radio/top
+    /**
+     * To start or stop a process.
+     * Examples: For radio streaming or listening.
+     */
+    export enum StartStop { // @todo not currently used
+        //% block="Start"
+        Start,
+        //% block="Stop"
+        Stop
     }
-  }
 
-  /**
-   * Create an object to manage receiving values from a breath sensor connected to another micro:bit.
-   * @param group The group ID for radio communications.
-   * @return A new `BreathOverRadio` object.
-   */
+    /**
+     * Start streaming values over radio from a `BreathSensor` object. Make sure to have it initialized.
+     * @param breathData A `BreathSensor` object to stream from.
+     * @param group The group ID for radio communications.
+     * @param power The output power of the radio sender.
+     */
 
-  //% block="new radio receiver|on group $group"
-  //% group.min=0 group.max=255 group.defl=0
-  //% blockSetVariable="breathOverRadio"
-  //% group="Start block"
-  //% weight=200
+    //% block="$breathData=variables_get(breathData)|start sending|on group $group|with power of $power"
+    //% group.min=0 group.max=255 group.defl=0
+    //% power.min=0 power.max=7 power.defl=6
+    //% group="On start: Sender"
+    //% weight=200
 
-  export function createBreathOverRadio(group: number = 0): BreathOverRadio {
-    return new BreathOverRadio(group)
-  }
+    export function startRadioStreaming(
+        breathData: bioW_Breath.BreathSensor,
+        group: number = 0,
+        power: number = 7
+    ): void {
+        util.assert(!!breathData, util.errorMessage.breath)
+        radio.setGroup(group)
+        radio.setTransmitPower(power)
+        breathData.stream = true
+    }
 
-  /**
-   * Get the breathing position sent over radio. Make sure to provide an initialized `BreathOverRadio`.
-   * @param breathOverRadio The receiver object.
-   * @return The breathing position.
-   */
+    /**
+     * Stop streaming values over radio from a `BreathSensor` object. Make sure to have it initialized.
+     * @param breathData A `BreathSensor` object to stop streaming from.
+     */
 
-  //% block="$breathOverRadio=variables_get(breathOverRadio) position"
-  //% group="Receiver data"
-  //% weight=200
+    //% block="$breathData=variables_get(breathData)|stop sending"
+    //% advanced=true
+    //% weight=190
 
-  export function position(breathOverRadio: BreathOverRadio = null): number {
-    util.assert(!!breathOverRadio, util.errorMessage.radio)
-    return breathOverRadio.position
-  }
+    export function stopRadioStreaming(
+        breathData: bioW_Breath.BreathSensor
+    ): void {
+        util.assert(!!breathData, util.errorMessage.breath)
+        breathData.stream = false
+    }
 
-  /**
-   * Get the breathing velocity sent over radio. Make sure to provide an initialized `BreathOverRadio`.
-   * @param breathOverRadio The receiver object.
-   * @return The breathing velocity.
-   */
+    /**
+     * A class to manage receiving values from a breath sensor connected to another micro:bit.
+     */
+    export class BreathOverRadio {
+        // @radio/class
+        position: number = 0
+        velocity: number = 0
+        frequency: number = 0
 
-  //% block="$breathOverRadio=variables_get(breathOverRadio) velocity"
-  //% group="Receiver data"
-  //% weight=190
+        targetPosition: number = 0
+        targetVelocity: number = 0
+        targetFrequency: number = 12
 
-  export function velocity(breathOverRadio: BreathOverRadio = null): number {
-    util.assert(!!breathOverRadio, util.errorMessage.radio)
-    return breathOverRadio.velocity
-  }
+        constructor(group: number) {
+            radio.setGroup(group & 0xff)
+            radio.onReceivedBuffer((buffer) => {
+                this.position = buffer.getNumber(NumberFormat.Float32LE, 0)
+                this.velocity = buffer.getNumber(NumberFormat.Float32LE, 4)
+                this.frequency = buffer.getNumber(NumberFormat.Float32LE, 8)
+            })
+        }
+    }
 
-  /**
-   * Get the breathing frequency sent over radio. Make sure to provide an initialized `BreathOverRadio`.
-   * @param breathOverRadio The receiver object.
-   * @return The breathing frequency.
-   */
+    /**
+     * Create an object to manage receiving values from a breath sensor connected to another micro:bit.
+     * @param group The group ID for radio communications.
+     * @return A new `BreathOverRadio` object.
+     */
 
-  //% block="$breathOverRadio=variables_get(breathOverRadio) frequency"
-  //% group="Receiver data"
-  //% weight=180
+    //% block="new radio receiver on group $group"
+    //% group.min=0 group.max=255 group.defl=0
+    //% blockSetVariable="breathOverRadio"
+    //% group="On start: Receiver"
+    //% weight=200
 
-  export function frequency(breathOverRadio: BreathOverRadio = null): number {
-    util.assert(!!breathOverRadio, util.errorMessage.radio)
-    return breathOverRadio.frequency
-  }
+    export function createBreathOverRadio(group: number = 0): BreathOverRadio {
+        return new BreathOverRadio(group)
+    }
 
-  /**
-   * Stop the receiver.
-   * @param breathOverRadio The receiver object.
-   */
+    /**
+     * Stop the receiver.
+     * @param breathOverRadio The receiver object.
+     */
 
-  //% block="$breathOverRadio=variables_get(breathOverRadio) stop listening"
-  //% group="Receiver data"
-  //% weight=170
+    //% block="$breathOverRadio=variables_get(breathOverRadio) stop listening"
+    //% advanced=true
+    //% weight=170
 
-  export function stopListening(breathOverRadio: BreathOverRadio = null): void {
-    util.assert(!!breathOverRadio, util.errorMessage.radio)
-    radio.onReceivedBuffer(() => {})
-    // There does not seem to be a way to unregister event handlers.
-    // See: https://makecode.microbit.org/reference/event-handler
-  }
+    export function stopListening(
+        breathOverRadio: BreathOverRadio = null
+    ): void {
+        util.assert(!!breathOverRadio, util.errorMessage.radio)
+        radio.onReceivedBuffer(() => {})
+        // There does not seem to be a way to unregister event handlers.
+        // See: https://makecode.microbit.org/reference/event-handler
+    }
 
-  /**
-   * Change the group ID for radio communications.
-   * @param breathOverRadio The receiver object.
-   * @param group The new group ID.
-   */
+    /**
+     * Change the group ID for radio communications.
+     * @param breathOverRadio The receiver object.
+     * @param group The new group ID.
+     */
 
-  //% block="$breathOverRadio=variables_get(breathOverRadio) change group to $group"
-  //% group.min=0 group.max=255 group.defl=0
-  //% group="Receiver data"
-  //% weight=160
+    //% block="$breathOverRadio=variables_get(breathOverRadio) change group to $group"
+    //% group.min=0 group.max=255 group.defl=0
+    //% advanced=true
+    //% weight=160
 
-  export function changeGroup(
-    breathOverRadio: BreathOverRadio = null,
-    group: number
-  ): void {
-    util.assert(!!breathOverRadio, util.errorMessage.radio)
-    radio.setGroup(group & 0xff)
-  }
+    export function changeGroup(
+        breathOverRadio: BreathOverRadio = null,
+        group: number
+    ): void {
+        util.assert(!!breathOverRadio, util.errorMessage.radio)
+        radio.setGroup(group & 0xff)
+    }
 }
