@@ -1,4 +1,4 @@
-# Examples
+# Full examples
 
 [[_TOC_]]
 
