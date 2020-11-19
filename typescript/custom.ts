@@ -1,5 +1,34 @@
 /**
  * Custom blocks for the BioWearable workshop.
+ *
+ * Navigation:
+ *   ::util
+ *     ::util:maps:length
+ *     ::util:maps:color
+ *     ::util:maps:brightness
+ *   ::micro
+ *     ::micro:class
+ *     ::micro:map
+ *     ::micro:do
+ *     ::micro:draw
+ *   ::neo
+ *     ::neo:class
+ *     ::neo:map
+ *     ::neo:do
+ *     ::neo:draw
+ *   ::breath
+ *     ::breath:class
+ *     ::breath:get
+ *     ::breath:osc
+ *   ::motor
+ *     ::motor:class
+ *   ::radio
+ *     ::radio:class
+ *
+ * Notes:
+ *   @todo
+ *   @alternate
+ *   @debug
  */
 
 /****************************************************************
@@ -7,17 +36,27 @@
  */
 
 namespace util {
-    // @util
+    // ::util
     /**
-     * A union type for classes that provide breath data: `BreathSensor` and `BreathOverRadio`.
+     * Union type for classes that provide breath data: `BreathSensor` and `BreathOverRadio`.
      */
     export type BreathData =
         | bioW_Breath.BreathSensor
         | bioW_Radio.BreathOverRadio
 
+    /**
+     * Union type for classes that provide displays: `Microbit` and `Neopixel`.
+     */
+    export type Displays = bioW_Microbit.Microbit | bioW_Neopixel.Neopixel
+
+    /**
+     * Function type for to map `BreathData` to a number
+     */
     export type Map = (breathData: BreathData) => number
 
-    export type Displays = bioW_Microbit.Microbit | bioW_Neopixel.Neopixel
+    // ----------------------------------------------------------------
+    // Length maps  ::util:maps:length
+    // ----------------------------------------------------------------
 
     /**
      * Enumeration of all possible mappings for the drawing length.
@@ -82,7 +121,8 @@ namespace util {
         }
     }
 
-    // Could also use an object literal: @alternate
+    // @alternate
+    // Could also use an object literal:
     // function getLengthMap2(lengthMapId: LengthMaps): Map {
     //     const maps: { [index: number]: Map } = {
     //         [LengthMaps.Constant]: (breathData) => {
@@ -92,11 +132,20 @@ namespace util {
     //     return maps[lengthMapId]
     // }
 
+    // ----------------------------------------------------------------
+    // Color maps  ::util:maps:color
+    // ----------------------------------------------------------------
+
     /**
      * Enumeration of all possible mappings for the drawing color.
      */
     export enum ColorMaps {
-        Constant = 200,
+        //% block="Constant Red"
+        ConstantRed = 200,
+        //% block="Constant Green"
+        ConstantGreen,
+        //% block="Constant Blue"
+        ConstantBlue,
         Position,
         Velocity,
         //% block="Target position"
@@ -120,9 +169,17 @@ namespace util {
      */
     function getColorMap(colorMapId: ColorMaps): Map {
         switch (colorMapId) {
-            case ColorMaps.Constant:
+            case ColorMaps.ConstantRed:
                 return (breathData) => {
                     return neopixel.colors(NeoPixelColors.Red)
+                }
+            case ColorMaps.ConstantGreen:
+                return (breathData) => {
+                    return neopixel.colors(NeoPixelColors.Green)
+                }
+            case ColorMaps.ConstantBlue:
+                return (breathData) => {
+                    return neopixel.colors(NeoPixelColors.Blue)
                 }
             case ColorMaps.Position:
                 return (breathData) => {
@@ -213,11 +270,20 @@ namespace util {
         }
     }
 
+    // ----------------------------------------------------------------
+    // Brightness maps  ::util:maps:brightness
+    // ----------------------------------------------------------------
+
     /**
      * Enumeration of all possible mappings for the drawing brightness.
      */
     export enum BrightnessMaps {
-        Constant = 300,
+        //% block="Constant low"
+        ConstantLow = 300,
+        //% block="Constant medium"
+        ConstantMedium,
+        //% block="Constant high"
+        ConstantHigh,
         Position,
         Velocity,
         Frequency,
@@ -236,7 +302,15 @@ namespace util {
      */
     function getBrightnessMap(brightnessMapId: BrightnessMaps): Map {
         switch (brightnessMapId) {
-            case BrightnessMaps.Constant:
+            case BrightnessMaps.ConstantLow:
+                return (breathData) => {
+                    return 16
+                }
+            case BrightnessMaps.ConstantMedium:
+                return (breathData) => {
+                    return 127
+                }
+            case BrightnessMaps.ConstantHigh:
                 return (breathData) => {
                     return 255
                 }
@@ -294,7 +368,7 @@ namespace util {
      * @param id The mapping identifier.
      * @return The mapping function.
      */
-    export function getMapFromId(id: number): Map {
+    export function getMap(id: number): Map {
         if (id < 200) {
             return getLengthMap(id)
         } else if (id < 300) {
@@ -305,61 +379,6 @@ namespace util {
             return bioW_Motor.getSpeedMap(id)
         } else {
             return bioW_Motor.getDirectionMap(id)
-        }
-    }
-
-    type DrawFunction = (
-        obj: Displays,
-        a: number,
-        b?: number,
-        c?: number,
-        d?: number,
-        e?: number
-    ) => void
-
-    export function getDrawFunction(
-        obj: Displays,
-        breath: util.BreathData,
-        ids: number[],
-        draw: DrawFunction
-    ): () => void {
-        const maps = ids.map(util.getMapFromId)
-        switch (maps.length) {
-            case 1:
-                return () => {
-                    draw(obj, maps[0](breath))
-                }
-            case 2:
-                return () => {
-                    draw(obj, maps[0](breath), maps[1](breath))
-                }
-            case 3:
-                return () => {
-                    draw(obj, maps[0](breath), maps[1](breath), maps[2](breath))
-                }
-            case 4:
-                return () => {
-                    draw(
-                        obj,
-                        maps[0](breath),
-                        maps[1](breath),
-                        maps[2](breath),
-                        maps[3](breath)
-                    )
-                }
-            case 5:
-                return () => {
-                    draw(
-                        obj,
-                        maps[0](breath),
-                        maps[1](breath),
-                        maps[2](breath),
-                        maps[3](breath),
-                        maps[4](breath)
-                    )
-                }
-            default:
-                throw 'getDrawFunction(): Incorrect number of arguments'
         }
     }
 
@@ -430,7 +449,7 @@ namespace util {
 // icon="\uf073" calendar alternate
 
 namespace bioW_Microbit {
-    // @micro/top
+    // ::micro
 
     /**
      * Create an object to manage drawing on a micro:bit LED matrix.
@@ -451,14 +470,14 @@ namespace bioW_Microbit {
      * The instance is also used to store breath mappings.
      */
     export class Microbit {
-        // @micro/class
+        // ::micro:class
 
         draw: () => void = null
 
         constructor() {}
 
         // ----------------------------------------------------------------
-        // Mapping methods  @micro/map
+        // Mapping methods  ::micro:map
         // ----------------------------------------------------------------
 
         //% block="map $breathData=variables_get(breathData)|to fill $this(myMicrobit)|brightness: $brightnessMapId"
@@ -470,12 +489,9 @@ namespace bioW_Microbit {
             breathData: util.BreathData,
             brightnessMapId: util.BrightnessMaps
         ): void {
-            this.draw = util.getDrawFunction(
-                null,
-                breathData,
-                [brightnessMapId],
-                drawFill
-            )
+            this.draw = () => {
+                drawFill(util.getMap(brightnessMapId)(breathData))
+            }
         }
 
         //% block="map $breathData=variables_get(breathData)|to disk on $this(myMicrobit)|radius: $lengthMapId|brightness: $brightnessMapId"
@@ -488,12 +504,12 @@ namespace bioW_Microbit {
             lengthMapId: util.LengthMaps,
             brightnessMapId: util.BrightnessMaps
         ): void {
-            this.draw = util.getDrawFunction(
-                null,
-                breathData,
-                [lengthMapId, brightnessMapId],
-                drawDisk
-            )
+            this.draw = () => {
+                drawDisk(
+                    util.getMap(lengthMapId)(breathData),
+                    util.getMap(brightnessMapId)(breathData)
+                )
+            }
         }
 
         //% block="map $breathData=variables_get(breathData)|to bar on $this(myMicrobit)|length: $lengthMapId|brightness: $brightnessMapId"
@@ -506,12 +522,12 @@ namespace bioW_Microbit {
             lengthMapId: util.LengthMaps,
             brightnessMapId: util.BrightnessMaps
         ): void {
-            this.draw = util.getDrawFunction(
-                null,
-                breathData,
-                [lengthMapId, brightnessMapId],
-                drawBar
-            )
+            this.draw = () => {
+                drawBar(
+                    util.getMap(lengthMapId)(breathData),
+                    util.getMap(brightnessMapId)(breathData)
+                )
+            }
         }
 
         //% block="map $breathData=variables_get(breathData)|to double bars on $this(myMicrobit)|length 1: $lengthMapId1|brightness 1: $brightnessMapId1|length 2: $lengthMapId2|brightness 2: $brightnessMapId2"
@@ -526,17 +542,14 @@ namespace bioW_Microbit {
             lengthMapId2: util.LengthMaps,
             brightnessMapId2: util.BrightnessMaps
         ): void {
-            this.draw = util.getDrawFunction(
-                null,
-                breathData,
-                [
-                    lengthMapId1,
-                    brightnessMapId1,
-                    lengthMapId2,
-                    brightnessMapId2
-                ],
-                drawDoubleBars
-            )
+            this.draw = () => {
+                drawDoubleBars(
+                    util.getMap(lengthMapId1)(breathData),
+                    util.getMap(brightnessMapId1)(breathData),
+                    util.getMap(lengthMapId2)(breathData),
+                    util.getMap(brightnessMapId2)(breathData)
+                )
+            }
         }
 
         //% block="map $breathData=variables_get(breathData)|to spiral on $this(myMicrobit)|length: $lengthMapId|brightness: $brightnessMapId"
@@ -549,16 +562,16 @@ namespace bioW_Microbit {
             lengthMapId: util.LengthMaps,
             brightnessMapId: util.BrightnessMaps
         ): void {
-            this.draw = util.getDrawFunction(
-                null,
-                breathData,
-                [lengthMapId, brightnessMapId],
-                drawSpiral
-            )
+            this.draw = () => {
+                drawSpiral(
+                    util.getMap(lengthMapId)(breathData),
+                    util.getMap(brightnessMapId)(breathData)
+                )
+            }
         }
 
         // ----------------------------------------------------------------
-        // Draw the mapping  @micro/do
+        // Draw the mapping  ::micro:do
         // ----------------------------------------------------------------
 
         //% block="draw mapping from breath to $this(myMicrobit)"
@@ -572,7 +585,7 @@ namespace bioW_Microbit {
     }
 
     // ----------------------------------------------------------------
-    // Drawing functions  @micro/draw
+    // Drawing functions  ::micro:draw
     // ----------------------------------------------------------------
 
     /**
@@ -586,7 +599,7 @@ namespace bioW_Microbit {
     //% advanced=true
     //% weight=200
 
-    export function drawFill(obj: object, brightness: number = 10): void {
+    export function drawFill(brightness: number = 10): void {
         led.setBrightness(util.iscale(brightness, 255))
         for (let n = 0; n < 25; n++) {
             led.plot(n % 5, Math.idiv(n, 5))
@@ -606,11 +619,7 @@ namespace bioW_Microbit {
     //% advanced=true
     //% weight=190
 
-    export function drawDisk(
-        obj: object,
-        radius: number,
-        brightness: number = 10
-    ): void {
+    export function drawDisk(radius: number, brightness: number = 10): void {
         // @todo Could use symmetry
         brightness = util.iscale(brightness, 255)
         radius = 0.03 * Math.clamp(0, 100, radius)
@@ -637,11 +646,7 @@ namespace bioW_Microbit {
     //% advanced=true
     //% weight=170
 
-    export function drawBar(
-        obj: object,
-        length: number,
-        brightness: number = 10
-    ): void {
+    export function drawBar(length: number, brightness: number = 10): void {
         length = util.iscale(length, 5)
         led.setBrightness(util.iscale(brightness, 255))
         basic.clearScreen()
@@ -670,7 +675,6 @@ namespace bioW_Microbit {
     //% weight=160
 
     export function drawDoubleBars(
-        obj: object,
         length1: number,
         brightness1: number = 10,
         length2: number,
@@ -705,11 +709,7 @@ namespace bioW_Microbit {
     //% advanced=true
     //% weight=1850
 
-    export function drawSpiral(
-        obj: object,
-        length: number,
-        brightness: number = 10
-    ): void {
+    export function drawSpiral(length: number, brightness: number = 10): void {
         let n = 12 // (2, 2)
         const dn = [1, -5, -1, 5] // right, up, left, down
         // Clockwise is [1, 5, -1, -5] // right, down, left, up
@@ -761,7 +761,7 @@ namespace bioW_Microbit {
 // icon="\uf00a" th
 
 namespace bioW_Neopixel {
-    // @neo/top
+    // ::neo
 
     /**
      * Create an object to manage a Neopixel LED matrix.
@@ -784,7 +784,7 @@ namespace bioW_Neopixel {
      * The instance is also used to store breath mappings.
      */
     export class Neopixel extends neopixel.Strip {
-        // @neo/class
+        // ::neo:class
         breath: util.BreathData = null
         draw: () => void = null
 
@@ -793,7 +793,7 @@ namespace bioW_Neopixel {
         }
 
         // ----------------------------------------------------------------
-        // Mapping methods  @neo/map
+        // Mapping methods  ::neo:map
         // ----------------------------------------------------------------
 
         //% block="map $breathData=variables_get(breathData)|to fill $this(myNeopixel)|color: $colorMapId|brightness: $brightnessMapId"
@@ -806,12 +806,13 @@ namespace bioW_Neopixel {
             colorMapId: util.ColorMaps,
             brightnessMapId: util.BrightnessMaps
         ): void {
-            this.draw = util.getDrawFunction(
-                this,
-                breathData,
-                [colorMapId, brightnessMapId],
-                drawFill
-            )
+            this.draw = () => {
+                drawFill(
+                    this,
+                    util.getMap(colorMapId)(breathData),
+                    util.getMap(brightnessMapId)(breathData)
+                )
+            }
         }
 
         //% block="map $breathData=variables_get(breathData)|to disk on $this(myNeopixel)|radius: $lengthMapId|color: $colorMapId|brightness: $brightnessMapId"
@@ -825,12 +826,14 @@ namespace bioW_Neopixel {
             colorMapId: util.ColorMaps,
             brightnessMapId: util.BrightnessMaps
         ): void {
-            this.draw = util.getDrawFunction(
-                this,
-                breathData,
-                [lengthMapId, colorMapId, brightnessMapId],
-                drawDisk
-            )
+            this.draw = () => {
+                drawDisk(
+                    this,
+                    util.getMap(lengthMapId)(breathData),
+                    util.getMap(colorMapId)(breathData),
+                    util.getMap(brightnessMapId)(breathData)
+                )
+            }
         }
 
         //% block="map $breathData=variables_get(breathData)|to bar on $this(myNeopixel)|length: $lengthMapId|color: $colorMapId|brightness: $brightnessMapId"
@@ -844,12 +847,14 @@ namespace bioW_Neopixel {
             colorMapId: util.ColorMaps,
             brightnessMapId: util.BrightnessMaps
         ): void {
-            this.draw = util.getDrawFunction(
-                this,
-                breathData,
-                [lengthMapId, colorMapId, brightnessMapId],
-                drawBar
-            )
+            this.draw = () => {
+                drawBar(
+                    this,
+                    util.getMap(lengthMapId)(breathData),
+                    util.getMap(colorMapId)(breathData),
+                    util.getMap(brightnessMapId)(breathData)
+                )
+            }
         }
 
         //% block="map $breathData=variables_get(breathData)|to double bars on $this(myNeopixel)|length 1: $lengthMapId1|color 1: $colorMapId1|length 2: $lengthMapId2|color 2: $colorMapId2|brightness: $brightnessMapId"
@@ -865,18 +870,16 @@ namespace bioW_Neopixel {
             colorMapId2: util.ColorMaps,
             brightnessMapId: util.BrightnessMaps
         ): void {
-            this.draw = util.getDrawFunction(
-                this,
-                breathData,
-                [
-                    lengthMapId1,
-                    colorMapId1,
-                    lengthMapId2,
-                    colorMapId2,
-                    brightnessMapId
-                ],
-                drawDoubleBars
-            )
+            this.draw = () => {
+                drawDoubleBars(
+                    this,
+                    util.getMap(lengthMapId1)(breathData),
+                    util.getMap(colorMapId1)(breathData),
+                    util.getMap(lengthMapId2)(breathData),
+                    util.getMap(colorMapId2)(breathData),
+                    util.getMap(brightnessMapId)(breathData)
+                )
+            }
         }
 
         //% block="map $breathData=variables_get(breathData)|to spiral on $this(myNeopixel)|length: $lengthMapId|color: $colorMapId|brightness: $brightnessMapId"
@@ -890,16 +893,18 @@ namespace bioW_Neopixel {
             colorMapId: util.ColorMaps,
             brightnessMapId: util.BrightnessMaps
         ): void {
-            this.draw = util.getDrawFunction(
-                this,
-                breathData,
-                [lengthMapId, colorMapId, brightnessMapId],
-                drawSpiral
-            )
+            this.draw = () => {
+                drawSpiral(
+                    this,
+                    util.getMap(lengthMapId)(breathData),
+                    util.getMap(colorMapId)(breathData),
+                    util.getMap(brightnessMapId)(breathData)
+                )
+            }
         }
 
         // ----------------------------------------------------------------
-        // Draw the mapping  @neo/do
+        // Draw the mapping  ::neo:do
         // ----------------------------------------------------------------
 
         //% block="draw mapping from breath to $this(myNeopixel)"
@@ -913,7 +918,7 @@ namespace bioW_Neopixel {
     }
 
     // ----------------------------------------------------------------
-    // Drawing methods  @neo/draw
+    // Drawing methods  ::neo:draw
     // ----------------------------------------------------------------
 
     /**
@@ -1219,7 +1224,7 @@ namespace bioW_Neopixel {
 // icon="\uf21e" heartbeat
 
 namespace bioW_Breath {
-    // @breath/top
+    // ::breath
     // The number of samples used to calculate the velocity
     const accuracy = 5
     // The sampling period used in the independent forever loop
@@ -1247,7 +1252,7 @@ namespace bioW_Breath {
      * store the value, and calculate the associated values.
      */
     export class BreathSensor {
-        // @breath/class
+        // ::breath:class
         position: number = 0
         velocity: number = 0
         frequency: number = 0
@@ -1386,7 +1391,7 @@ namespace bioW_Breath {
     }
 
     // ----------------------------------------------------------------
-    // Getters  @breath/get
+    // Getters  ::breath:get
     // ----------------------------------------------------------------
 
     /**
@@ -1482,7 +1487,7 @@ namespace bioW_Breath {
     }
 
     // ----------------------------------------------------------------
-    // Oscillator  @breath/osc
+    // Oscillator  ::breath:osc
     // ----------------------------------------------------------------
 
     /**
@@ -1527,7 +1532,7 @@ namespace bioW_Breath {
 // icon="\uf185" sun
 
 namespace bioW_Motor {
-    // @mot/top
+    // ::motor
     /**
      * Enumeration of all possible mappings for the motor speed.
      */
@@ -1663,7 +1668,7 @@ namespace bioW_Motor {
      * A class to manage receiving values from a breath sensor connected to another micro:bit.
      */
     export class Motor extends bBoard_Motor.BBOARD_MOTOR {
-        // @mot/class
+        // ::motor:class
         breath: util.BreathData = null
         speedMap: util.Map = null
         directionMap: util.Map = null
@@ -1712,7 +1717,7 @@ namespace bioW_Motor {
 //% icon="\uf012" signal (same as generic Radio)
 
 namespace bioW_Radio {
-    // @radio/top
+    // ::radio
 
     /**
      * Start streaming values over radio from a `BreathSensor` object. Make sure to have it initialized.
@@ -1758,7 +1763,7 @@ namespace bioW_Radio {
      * A class to manage receiving values from a breath sensor connected to another micro:bit.
      */
     export class BreathOverRadio {
-        // @radio/class
+        // ::radio:class
         position: number = 0
         velocity: number = 0
         frequency: number = 0
@@ -1797,7 +1802,7 @@ namespace bioW_Radio {
 
     //% block="new radio receiver on group $group"
     //% group.min=0 group.max=255 group.defl=0
-    //% blockSetVariable="breathOverRadio"
+    //% blockSetVariable="breathData"
     //% group="On start: Receiver"
     //% weight=200
 
@@ -1807,17 +1812,15 @@ namespace bioW_Radio {
 
     /**
      * Stop the receiver.
-     * @param breathOverRadio The receiver object.
+     * @param breathData The receiver object.
      */
 
-    //% block="$breathOverRadio=variables_get(breathOverRadio) stop listening"
+    //% block="$breathData=variables_get(breathData) stop listening"
     //% advanced=true
     //% weight=170
 
-    export function stopListening(
-        breathOverRadio: BreathOverRadio = null
-    ): void {
-        util.assert(!!breathOverRadio, util.errorMessage.radio)
+    export function stopListening(breathData: BreathOverRadio = null): void {
+        util.assert(!!breathData, util.errorMessage.radio)
         radio.onReceivedBuffer(() => {})
         // There does not seem to be a way to unregister event handlers.
         // See: https://makecode.microbit.org/reference/event-handler
@@ -1825,20 +1828,20 @@ namespace bioW_Radio {
 
     /**
      * Change the group ID for radio communications.
-     * @param breathOverRadio The receiver object.
+     * @param breathData The receiver object.
      * @param group The new group ID.
      */
 
-    //% block="$breathOverRadio=variables_get(breathOverRadio) change group to $group"
+    //% block="$breathData=variables_get(breathData) change group to $group"
     //% group.min=0 group.max=255 group.defl=0
     //% advanced=true
     //% weight=160
 
     export function changeGroup(
-        breathOverRadio: BreathOverRadio = null,
+        breathData: BreathOverRadio = null,
         group: number
     ): void {
-        util.assert(!!breathOverRadio, util.errorMessage.radio)
+        util.assert(!!breathData, util.errorMessage.radio)
         radio.setGroup(group & 0xff)
     }
 }
