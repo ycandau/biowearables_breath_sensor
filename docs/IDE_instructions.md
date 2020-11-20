@@ -45,17 +45,17 @@ TypeScript files can be copied directly into the JavaScript editor. This reposit
 
 - Click `+` to add `Add custom blocks`.
 
-![Add custom blocks](images/IDE_explorer_2.png)
+![Add custom blocks](../images/IDE_explorer_2.png)
 
 - You should see a new `custom.ts` file which can be used for libraries.
 
-![Add custom blocks](images/IDE_explorer_3.png)
+![Add custom blocks](../images/IDE_explorer_3.png)
 
 - You can now copy code for a library into `custom.ts`.
 - And code for a program goes into `main.ts`.
 - Switching back to `Blocks` view renders the program into blocks.
 
-![Switch to JavaScript view](images/IDE_toggle_blocks.png)
+![Switch to JavaScript view](../images/IDE_toggle_blocks.png)
 
 ----
 
@@ -75,11 +75,11 @@ A number of convenient features are available with a little bit of preliminary s
 
 Once that is done you can flash the micro:bit with a single click. Instead of the regular `Download` button:
 
-![Regular download](images/IDE_download_1.png)
+![Regular download](../images/IDE_download_1.png)
 
 You should now see:
 
-![Download on paired micro:bit](images/IDE_download_2.png)
+![Download on paired micro:bit](../images/IDE_download_2.png)
 
 This setup also allows you to monitor actual sensor data in the console, which is useful for testing and debugging (see [example](./library_examples.md#serial-monitor-actual-data-in-the-console)).
 
@@ -99,16 +99,16 @@ In Chrome and with the micro:bit connected over USB I found the process to be mo
 
 - Click the three dots to the side of the `|Download|` button and choose `|Pair device|`.
 
-![Pair the micro:bit](images/IDE_pairing_1.png)
+![Pair the micro:bit](../images/IDE_pairing_1.png)
 
 - Confirm in the pop up window that you intend to pair the micro:bit.
 
-![Pair the micro:bit](images/IDE_pairing_2.png)
+![Pair the micro:bit](../images/IDE_pairing_2.png)
 
 - Choose the device you want to pair and connect to it.
 
-![Pair the micro:bit](images/IDE_pairing_3.png)
+![Pair the micro:bit](../images/IDE_pairing_3.png)
 
 You should now see:
 
-![Download on paired micro:bit](images/IDE_download_2.png)
+![Download on paired micro:bit](../images/IDE_download_2.png)
