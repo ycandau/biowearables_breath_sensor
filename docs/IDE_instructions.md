@@ -37,11 +37,11 @@ TypeScript files can be copied directly into the JavaScript editor. This reposit
 
 - Switch to `JavaScript` view in an existing project.
 
-![Switch to JavaScript view](images/IDE_toggle_javascript.png)
+![Switch to JavaScript view](../images/IDE_toggle_javascript.png)
 
 - Open the `Explorer` on the side.
 
-![Open the explorer](images/IDE_explorer_1.png)
+![Open the explorer](../images/IDE_explorer_1.png)
 
 - Click `+` to add `Add custom blocks`.
 
