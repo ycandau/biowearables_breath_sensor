@@ -10,7 +10,7 @@ There are advantages to using **Chrome** as a browser, particularly for debuggin
 
 The Brilliant Labs IDE for the new b.Board (v1.1) is at [code.brilliantlabs.ca](https://code.brilliantlabs.ca).
 
-Make sure to use the link above and not the older IDE at [~~bboard.now.sh~~](https://bboard.now.sh/) which was developed for the first version of the b.Board (v1.0). The new IDE should have three `Advanced` libraries called `BBoard_Mic`, `BBoard_Motor` and `BBoard_Music`.
+Make sure to use the link above and not the older IDE at [~~bboard.now.sh~~](https://bboard.now.sh/) which was developed for the first version of the b.Board (v1.0). The new IDE should have a `b.Board` tab under `Advanced`, with libraries such as `BBoard_Motor`, `BBoard_Sound` and `BBoard_Mic`.
 
 ----
 
