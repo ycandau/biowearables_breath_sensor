@@ -480,6 +480,12 @@ namespace bioW_Microbit {
         // Mapping methods  ::micro:map
         // ----------------------------------------------------------------
 
+        /**
+         * Map breath data to draw a full matrix on the Microbit.
+         * @param breathData The breath data to map, from a sensor or radio receiver.
+         * @param brightnessMapId A brightness mapping identifier.
+         */
+
         //% block="map $breathData=variables_get(breathData)|to fill $this(myMicrobit)|brightness: $brightnessMapId"
         //% inlineInputMode=inline
         //% group="On start: Map"
@@ -493,6 +499,13 @@ namespace bioW_Microbit {
                 drawFill(util.getMap(brightnessMapId)(breathData))
             }
         }
+
+        /**
+         * Map breath data to draw a disk on the Microbit.
+         * @param breathData The breath data to map, from a sensor or radio receiver.
+         * @param lengthMapId A length mapping identifier for the radius of the disk.
+         * @param brightnessMapId A brightness mapping identifier.
+         */
 
         //% block="map $breathData=variables_get(breathData)|to disk on $this(myMicrobit)|radius: $lengthMapId|brightness: $brightnessMapId"
         //% inlineInputMode=inline
@@ -512,6 +525,13 @@ namespace bioW_Microbit {
             }
         }
 
+        /**
+         * Map breath data to draw a bar on the Microbit.
+         * @param breathData The breath data to map, from a sensor or radio receiver.
+         * @param lengthMapId A length mapping identifier for the length of the bar.
+         * @param brightnessMapId A brightness mapping identifier.
+         */
+
         //% block="map $breathData=variables_get(breathData)|to bar on $this(myMicrobit)|length: $lengthMapId|brightness: $brightnessMapId"
         //% inlineInputMode=inline
         //% group="On start: Map"
@@ -529,6 +549,15 @@ namespace bioW_Microbit {
                 )
             }
         }
+
+        /**
+         * Map breath data to draw double bars on the Microbit.
+         * @param breathData The breath data to map, from a sensor or radio receiver.
+         * @param lengthMapId1 A length mapping identifier for the length of the first bar.
+         * @param brightnessMapId1 A brightness mapping identifier for the first bar.
+         * @param lengthMapId2 A length mapping identifier for the length of the second bar.
+         * @param brightnessMapId2 A brightness mapping identifier for the second bar.
+         */
 
         //% block="map $breathData=variables_get(breathData)|to double bars on $this(myMicrobit)|length 1: $lengthMapId1|brightness 1: $brightnessMapId1|length 2: $lengthMapId2|brightness 2: $brightnessMapId2"
         // inlineInputMode=inline
@@ -552,6 +581,13 @@ namespace bioW_Microbit {
             }
         }
 
+        /**
+         * Map breath data to draw a spiral on the Microbit.
+         * @param breathData The breath data to map, from a sensor or radio receiver.
+         * @param lengthMapId A length mapping identifier for the length of the spiral.
+         * @param brightnessMapId A brightness mapping identifier.
+         */
+
         //% block="map $breathData=variables_get(breathData)|to spiral on $this(myMicrobit)|length: $lengthMapId|brightness: $brightnessMapId"
         //% inlineInputMode=inline
         //% group="On start: Map"
@@ -573,6 +609,10 @@ namespace bioW_Microbit {
         // ----------------------------------------------------------------
         // Draw the mapping  ::micro:do
         // ----------------------------------------------------------------
+
+        /**
+         * Draw the mapping that has been defined for the Microbit.
+         */
 
         //% block="draw mapping from breath to $this(myMicrobit)"
         //% inlineInputMode=inline

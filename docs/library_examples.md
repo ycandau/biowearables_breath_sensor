@@ -1,6 +1,11 @@
 # Examples
 
-[[_TOC_]]
+### Content
+
+- [Conventions](#conventions)
+- [Example 1: Drawing directly on the micro:bit](#example-1-drawing-directly-on-the-microbit)
+- [Example 2: Breath sensor and radio sender with display](#example-2-breath-sensor-and-radio-sender-with-display)
+- [Example 3: Radio receiver with NeoPixel and motor](#example-3-radio-receiver-with-neopixel-and-motor)
 
 ----
 
@@ -8,173 +13,209 @@
 
 We use the following conventions:
 
-- `|BioW_Breath|`: A component of the IDE's interface, such as a tab or button.
-- `[new neopixel]`: A block statement or expression.
+- `[BioW_Breath]`: A component of the IDE's interface, such as a tab or button.
+- `||new neopixel||`: A block statement or expression.
 - `length`: A parameter, piece of code, or file name.
 
 ----
 
-### Setting up the library
+### Example 1: Drawing directly on the micro:bit
 
-You will need the biowearables library of custom blocks to run these examples in the IDE.
+This is a minimal example to draw an oscillating spiral on the micro:bit. Note that it relies on a direct drawing function that would generally not be used in the workshops, or only for testing purposes.
 
-You can either:
-
-- Import a hex file with the library to a new project: [biowearables_library.hex](../hex/biowearables_library.hex)
-- Copy a `custom.js` file into an existing project: [custom.ts](../typescript/custom.ts)
-
-You should see new tabs in the IDE for the custom blocks:
-
-![New tabs](../images/IDE_new_tabs.png)
-
-More information on using hex files and TypeScript files is available [here](../README.md/#storing-and-retrieving-projects).
+Source for main file: [main_01_draw_spiral.ts](../typescript/main_01_draw_spiral.ts)
 
 ----
 
-### Using JavaScript mode for more information
+#### Step 1
 
-While these examples focus on how things look in `|Blocks|` mode, additional information on all the blocks can be accessed by switching to `|JavaScript|` mode.
+Look for the `||draw spiral||` block in the `[BioW_Microbit]` tab under `[... more]` (as the function is not meant for ordinary use).
 
-In the text editor, hovering over a function or variable brings up contextual information. And on the side, opening a tab with custom blocks displays summary information for each:
+![BioW_Microbit / draw spiral](../images/biow_microbit_draw_spiral.png)
 
-![Summary information](../images/IDE_js_docs_1.png)
+Add the block to a `||forever||` loop. It has two parameters, `length` and `brightness`, which can be set to fixed values or functions that yield numeric values.
 
-This information (generated from JSDoc style annotations in the source file) can be expanded by hovering over a block and clicking on the three vertical lines:
 
-![Summary information](../images/IDE_js_docs_2.png)
-
-----
-
-### BioW_Microbit: Drawing on the micro:bit
-
-`|BioW_Microbit|` includes drawing blocks for the 5x5 LED matrix on the micro:bit.
-
-Source for main file: [main_example_microbit.ts](../typescript/main_example_microbit.ts)
-
-Block program:
-
-![Microbit blocks example](../images/blocks_example_microbit.png)
-
-Unlike the other components, there is no underlying class here. In terms of blocks, this means that there is no variable to first create in the `[on start]` block which remains empty.
-
-To draw a bar on the LED matrix we add a `[draw bar]` block in the `[forever]` loop. The block has two parameters: `length` and `brightness`. These can be set to fixed values or functions that yield a numeric value.
-
-To draw an oscillating bar we use the `[cycle]` block from the `|BioW_Breath|` tab and assign it to the `length` parameter of the bar. The oscillator has itself two parameters: `frequency` and `phase shift`.
-
-You should see the oscillating bar in the simulator, or on an actual micro:bit if you flash it with this program.
+![Example 1 / Step 1](../images/example_01_draw_spiral_01.png)
 
 ----
 
-### BioW_Neopixel: Drawing on the Neopixel
+#### Step 2
 
-`|BioW_Neopixel|` includes blocks to create a Neopixel object and draw on the corresponding 8x8 LED matrix.
+To then draw an oscillating spiral look for the `||cycle||` block in the `[BioW_Breath]` tab under `[Utility]`. 
 
-Source for main file: [main_example_neopixel.ts](../typescript/main_example_neopixel.ts)
+![BioW_Breath / cycle](../images/biow_breath_cycle.png)
 
-Block program:
+Assign the block to the `length` parameter of the spiral. The oscillator has itself two parameters, `frequency` and `phase shift`, which can be left to their default values.
 
-![Neopixel blocks example](../images/blocks_example_neopixel.png)
+![Example 1 / Step 2](../images/example_01_draw_spiral_02.png)
 
-We first need to set a variable to a new Neopixel object. The `[new neopixel]` block at the top of the `|BioW_Neopixel|` tab does just that. Note that inside the tab it is grouped under `|Start block|` to emphasize that its function is to create and initialize an object for later use, and that it goes in the `[on start]` block.
-
-All blocks have default values for their parameters, including variable names. In this case the default variable is `myNeopixel`. You could leave it as is or change it. The only constraint is that variables are used consistently throughout the program. We also indicate which `pin` the Neopixel is connected to.
-
-Just like for the micro:bit example, we use an oscillator. The `length` of a `[draw bar]` block is set to this oscillating value. The bar is also set to a fixed `color`, and a fixed `brightness` of 10. All the Neopixel drawing blocks, grouped in the tab under `|Display|`, require a Neopixel object. This is already set by default to `myNeopixel` as in the creation block. This goes into the `[forever]` loop.
-
-The library throws an error if the Neopixel object is missing or not initialized. Try dragging the `[set myNeopixel]` block out of the `[on start]` block for instance. An error will be thrown, indicated in the IDE by highlighting the block causing the problem:
-
-![Error from a block](../images/IDE_errors_1.png)
-
-And an error message popping up:
-
-![Error message](../images/IDE_errors_2.png)
-
-We ensure this way that a user is reminded to create objects before using them. Unfortunately, in `|Blocks|` mode the IDE displays the message only temporarily. It can take a few seconds to appear, and you can press `|Play|` or `|Restart|` to refresh the program and trigger the error.
+Note that there is no underlying class here. In terms of blocks, this means that there is no variable to create, and no need for an `||on start||` block. You should see the oscillating spiral in the simulator, or on an actual micro:bit if you flash it with this program.
 
 ----
 
-### BioW_Breath: Getting breath data from the sensor
+### Example 2: Breath sensor and radio sender with display
 
-`|BioW_Breath|` includes blocks to connect a breath sensor and get data from it.
+This example details a block program for a micro:bit that:
 
-Source for main file: [main_example_breath_sensor.ts](../typescript/main_example_breath_sensor.ts)
+- is connected to a breath sensor,
+- maps the measured data to a spiral on its LED matrix,
+- and sends the corresponding breath data over radio.
 
-Block program:
-
-![Breath sensor blocks example](../images/blocks_example_breath_sensor.png)
-
-We first need to set a variable to a `[new breath sensor]` block, found at the top of the `|BioW_Breath|` tab. We indicate which `pin` the sensor is connected to (on the micro:bit or on the b.Board). This goes in the `[on start]` block.
-
-Under the hood, creating a `[new breath sensor]` launches an independent forever loop that periodically reads the pin, stores the corresponding position, and calculates associated values such as the breath velocity. Running this separately rather than in the publicly exposed `[forever]` loop achieves a more reliable sampling frequency, and avoid issues such as duplicate calculations. All of this is transparent to the user.
-
-When we need to get breathing data we simply use for instance a `[position]` block, assigned here to the `length` of a bar drawn on the micro:bit.
+Source for main file: [main_02_radio_sender.ts](../typescript/main_02_radio_sender.ts)
 
 ----
 
-### Serial: Monitor actual data in the console
+#### Step 1
 
-`|Serial|` is a standard tab found under `|Advanced|` which we can use to monitor data in the console. This can be useful for debugging.
+Create a new object for the breath sensor. Look for the `||new breath sensor||` block found in the `[BioW_Breath]` tab under `[On start: Create]`. Note that the name of the groups in the tab indicate whether the corresponding blocks are meant to be used once `||on start||` or repeatedly in a `||forever||` loop.
 
-Source for main file: [main_example_serial.ts](../typescript/main_example_serial.ts)
+![BioW_Breath / new breath sensor](../images/biow_breath_new.png)
 
-Block program:
+Add the block to run `||on start||`. Make sure to set the `pin` parameter to the pin to which the breath sensor is connected.
 
-![Serial blocks example](../images/blocks_example_serial.png)
-
-We can thus monitor the breath position in the previous program by adding a `[serial write value]` block in  the `[forever]` loop. It is set to post a label (any string) and a value set here to the breath `[position]`.
-
-Once the program is running, an option to show the console appears:
-
-![Show simulator console](../images/IDE_show_console_simulator.png)
-
-If we are running the program in the simulator the choice is limited to a console showing simulated data. To work with sensors this is of limited use. But with the proper setup, and the program running on a micro:bit, we can also monitor actual data from the device:
-
-![Show device console](../images/IDE_show_console_device.png)
-
-This feature requires:
-
-- running the IDE on **Chrome**
-- a **paired** micro:bit
-- connected over **USB**
-- and with an up to date **firmware**.
-
-More information on setting this up is available [here](../README.md).
+![Example 2 / Step 1](../images/example_02_sender_01.png)
 
 ----
 
-### BioW_Radio: Sending breath data over radio
+#### Step 2
 
-`|BioW_Radio|` includes blocks to send and receive breath data over radio. You will need two micro:bits to try this out.
+Create a new object for the micro:bit. Look for the `||new microbit||` block found in `[BioW_Microbit]` under `[On start: Create]`.
 
-Source for sender main file: [main_example_radio_sender.ts](../typescript/main_example_radio_sender.ts)
+![BioW_Microbit / new microbit](../images/biow_microbit_new.png)
 
-Block program for sender:
+Add the block to run `||on start||`.
 
-![Radio sender blocks example](../images/blocks_example_radio_sender.png)
-
-The **sender** should be connected to a breath sensor. As previously, we create a `[new breath sensor]` and indicate the `pin` to which it is connected. This is the same block found in the `|BioW_Breath|` tab.
-
-We then start streaming the breath data from `breathSensor` by adding a `[start sending]` block. We also indicate the radio `group` and the output `power` to be used.
-
-Both blocks go in the `[on start]` block.
+![Example 2 / Step 2](../images/example_02_sender_02.png)
 
 ----
 
-### BioW_Radio: Receiving breath data over radio
+#### Step 3
 
-This is a continuation of the previous section, and introduces the second program that runs on the **receiver** micro:bit.
+Set a mapping from the breath sensor data to the micro:bit. There are a number of drawing patterns to choose from in `[BioW_Microbit]` under `[On start: Map]`. Let's choose `||map to spiral||`.
 
-Source for receiver main file: [main_example_radio_receiver.ts](../typescript/main_example_radio_receiver.ts)
+![BioW_Microbit / map to spiral](../images/biow_microbit_map_to_spiral.png)
 
-Block program for receiver:
+Add the block to run `||on start||` (as indicated by the group name). Like the direct drawing function from [Example 1](#example-1-drawing-directly-on-the-microbit), the spiral pattern has two underlying parameters: `length` and `brightness`. But instead of setting numeric values we choose here a specific mapping for each parameter:
 
-![Radio receiver blocks example](../images/blocks_example_radio_receiver.png)
+- Set `length` to `Target position` (which works without an actual breath sensor).
+- Set `brightness` to `Constant low`.
 
-We create a `[new radio receiver]` in the `[on start]` block and set it to the variable `breathOverRadio`.
-
-We can then get breath data from `breathOverRadio` using the same blocks that we used for a `BreathSensor`, found in the `|BioW_Breath|` tab: for instance, the breath `[position]`.
+![Example 2 / Step 3](../images/example_02_sender_03.png)
 
 ----
 
-### BioW_Mapping: Mapping inputs to outputs
+#### Step 4
 
+With the mapping now set, all we need to do is add a block to actually do the drawing in a `||forever||` loop. Look for the `||draw mapping||` block in `[Biow_Microbit]` under `[Forever: Draw]`.
+
+![BioW_Microbit / draw map](../images/biow_microbit_draw_map.png)
+
+Add the block to a `||forever||` loop to draw the chosen mapping.
+
+![Example 2 / Step 4](../images/example_02_sender_04.png)
+
+Just like in [Example 1](#example-1-drawing-directly-on-the-microbit), you should now see the oscillating spiral in the simulator. But instead of drawing directly we first choose a mapping `||on start||` and then enact it in a `||forever||` loop.
+
+----
+
+#### Step 5
+
+Finally, send the breath data over radio for another micro:bit to receive. Look for the `||send||` block in `[BioW_Radio]` under `[On start: Sender]`.
+
+![BioW_Radio / send](../images/biow_radio_send.png)
+
+Add the block to run `||on start||`. The parameter values for the `group` and `power` can be left to their defaults.
+
+![Example 2 / Step 5](../images/example_02_sender_05.png)
+
+----
+
+### Example 3: Radio receiver with NeoPixel and motor
+
+This example details a block program for a b.Board that:
+
+- receives breath data over radio,
+- maps this data to a spiral on the LED matrix of its micro:bit,
+- to a connected NeoPixel LED matrix,
+- and to a connected motor.
+
+Source for main file: [main_03_radio_receiver.ts](../typescript/main_03_radio_receiver.ts)
+
+----
+
+#### Step 1
+
+Instead of measuring breath data from a breath sensor as in [Example 2](#example-2-breath-sensor-and-radio-sender-with-display), we are now listening for breath data over radio. Look for the `||new radio receiver||` block found in the `[BioW_Radio]` tab under `[On start: Receiver]`.
+
+![BioW_Radio / new radio receiver](../images/biow_radio_new_receiver.png)
+
+Add the block to run `||on start||`. Make sure that the `group` identifier is set to the same channel as what the sender is using. The `breathData` object that is created can then be used just as we used the object created for a breath sensor in [Example 2](#example-2-breath-sensor-and-radio-sender-with-display).
+
+![Example 3 / Step 1](../images/example_03_receiver_01.png)
+
+----
+
+#### Step 2
+
+Next we map the breath data to the micro:bit's LED matrix, using three blocks found in the `[BioW_Microbit]` tab.
+
+- Create a `||new microbit||` object.
+
+![BioW_Microbit / new microbit](../images/biow_microbit_new.png)
+
+- Set the mapping with a `||map to spiral||` block.
+
+![BioW_Microbit / map to spiral](../images/biow_microbit_map_to_spiral.png)
+
+- Enact the mapping with a `||draw mapping||` block.
+
+![BioW_Microbit / map to spiral](../images/biow_microbit_draw_map.png)
+
+Creating the object and setting the mapping is done `||on start||` (as indicated by the group names in the tab). Enacting the mapping is done in a `||forever||` loop. Choose `Target position` for the `length` parameter.
+
+![Example 3 / Step 2](../images/example_03_receiver_02.png)
+
+----
+
+#### Step 3
+
+Defining a mapping for the NeoPixel's LED matrix is similar, using three blocks found in the `[BioW_Neopixel]` tab.
+
+- Create a `||new neopixel||` object `||on start||`.
+
+![BioW_Neopixel / new neopixel](../images/biow_neopixel_new.png)
+
+- Set the mapping with a `||map to bar||` block `||on start||`. Choose `Target position` for the `length` parameter.
+
+![BioW_Neopixel / map to bar](../images/biow_neopixel_map_to_bar.png)
+
+- Enact the mapping with a `||draw mapping||` block in a `||forever||` loop.
+
+![BioW_Neopixel / map to bar](../images/biow_neopixel_draw_map.png)
+
+The block program is now:
+
+![Example 3 / Step 3](../images/example_03_receiver_03.png)
+
+----
+
+#### Step 4
+
+Finally, we define a mapping for the motor using three blocks found in the `[BioW_Motor]` tab.
+
+- Create a `||new motor||` object `||on start||`.
+
+![BioW_Motor / new motor](../images/biow_motor_new.png)
+
+- Set the mapping with a `||map to run||` block `||on start||`. Choose `Target position` for the `speed` parameter.
+
+![BioW_Motor / run](../images/biow_motor_map.png)
+
+- Enact the mapping with a `||run mapping||` block in a `||forever||` loop.
+
+![BioW_Motor / run](../images/biow_motor_run.png)
+
+The complete block program is:
+
+![Example 3 / Step 4](../images/example_03_receiver_04.png)
