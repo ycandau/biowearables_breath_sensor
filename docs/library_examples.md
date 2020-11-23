@@ -21,6 +21,8 @@ We use the following conventions:
 
 ### Example 1: Drawing directly on the micro:bit
 
+#### Summary
+
 This is a minimal example to draw an oscillating spiral on the micro:bit. Note that it relies on a direct drawing function that would generally not be used in the workshops, or only for testing purposes.
 
 Source for main file: [main_01_draw_spiral.ts](../typescript/main_01_draw_spiral.ts)
@@ -56,6 +58,8 @@ Note that there is no underlying class here. In terms of blocks, this means that
 
 ### Example 2: Breath sensor and radio sender with display
 
+#### Summary
+
 This example details a block program for a micro:bit that:
 
 - is connected to a breath sensor,
@@ -64,17 +68,33 @@ This example details a block program for a micro:bit that:
 
 Source for main file: [main_02_radio_sender.ts](../typescript/main_02_radio_sender.ts)
 
+Complete program:
+
+![Example 2 / Complete program](../images/example_02_sender_05.png)
+
+In summary, in the `[on start]` block:
+
+- Create an object for each component (breath sensor and micro:bit).
+- Set the mapping to draw on the micro:bit.
+- Send the breath data over radio.
+
+And in the `[forever]` loop:
+
+- Draw the mapping.
+
 ----
 
 #### Step 1
 
-Create a new object for the breath sensor. Look for the `||new breath sensor||` block found in the `[BioW_Breath]` tab under `[On start: Create]`. Note that the name of the groups in the tab indicate whether the corresponding blocks are meant to be used once `||on start||` or repeatedly in a `||forever||` loop.
+Create a new object for the breath sensor. Look for the `||new breath sensor||` block found in the `[BioW_Breath]` tab under `[On start: Create]`. Note that the name of the group indicates that the block is used to **create** an object for later use, and that it goes into the `||on start||` block.
 
 ![BioW_Breath / new breath sensor](../images/biow_breath_new.png)
 
-Add the block to run `||on start||`. Make sure to set the `pin` parameter to the pin to which the breath sensor is connected.
+Add the block to run `||on start||`. It has a default variable name already set to `breathData` which we can leave as is. Make sure to set the `pin` parameter to the pin to which the breath sensor is connected.
 
 ![Example 2 / Step 1](../images/example_02_sender_01.png)
+
+Under the hood, creating a `||new breath sensor||` launches an independent forever loop that periodically reads the pin, stores the corresponding position, and calculates associated values such as the breath velocity. Running this separately rather than in the publicly exposed `||forever||` loop achieves a more reliable sampling frequency, and avoid issues such as duplicate calculations. All of this is transparent to the user.
 
 ----
 
@@ -84,7 +104,7 @@ Create a new object for the micro:bit. Look for the `||new microbit||` block fou
 
 ![BioW_Microbit / new microbit](../images/biow_microbit_new.png)
 
-Add the block to run `||on start||`.
+Add the block to run `||on start||` (as indicated by the group name).
 
 ![Example 2 / Step 2](../images/example_02_sender_02.png)
 
@@ -96,12 +116,18 @@ Set a mapping from the breath sensor data to the micro:bit. There are a number o
 
 ![BioW_Microbit / map to spiral](../images/biow_microbit_map_to_spiral.png)
 
-Add the block to run `||on start||` (as indicated by the group name). Like the direct drawing function from [Example 1](#example-1-drawing-directly-on-the-microbit), the spiral pattern has two underlying parameters: `length` and `brightness`. But instead of setting numeric values we choose here a specific mapping for each parameter:
+Add the block to run `||on start||`. Like the direct drawing function from [Example 1](#example-1-drawing-directly-on-the-microbit), the spiral pattern has two underlying parameters: `length` and `brightness`. But instead of setting numeric values we choose here a specific mapping for each parameter:
 
 - Set `length` to `Target position` (which works without an actual breath sensor).
 - Set `brightness` to `Constant low`.
 
 ![Example 2 / Step 3](../images/example_02_sender_03.png)
+
+Note that we can generally leave the default variable names already provided, such as `breathData`. Also, the library throws an error if we try using a variable without first creating it. For instance, calling `||map breathData||` with no previous `||set breathData||` results in:
+
+![Error from a block](../images/IDE_errors_1.png)
+
+We ensure this way that a user is reminded to create objects before using them.
 
 ----
 
@@ -133,6 +159,8 @@ Add the block to run `||on start||`. The parameter values for the `group` and `p
 
 ### Example 3: Radio receiver with NeoPixel and motor
 
+#### Summary
+
 This example details a block program for a b.Board that:
 
 - receives breath data over radio,
@@ -141,6 +169,19 @@ This example details a block program for a b.Board that:
 - and to a connected motor.
 
 Source for main file: [main_03_radio_receiver.ts](../typescript/main_03_radio_receiver.ts)
+
+Complete block program:
+
+![Example 3 / Step 4](../images/example_03_receiver_04.png)
+
+In summary, in the `[on start]` block:
+
+- Create an object for each component (radio receiver, micro:bit, NeoPixel and motor).
+- Set the mappings using the dropdown menus for all parameters.
+
+And in the `[forever]` loop:
+
+- Draw and run the mappings.
 
 ----
 
