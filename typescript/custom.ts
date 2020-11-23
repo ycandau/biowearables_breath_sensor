@@ -29,6 +29,7 @@
  *   @todo
  *   @alternate
  *   @debug
+ *   @issue
  */
 
 /****************************************************************
@@ -1707,16 +1708,34 @@ namespace bioW_Motor {
     /**
      * A class to manage receiving values from a breath sensor connected to another micro:bit.
      */
-    export class Motor extends bBoard_Motor.BBOARD_MOTOR {
+
+    // export class Motor extends bBoard_Motor.BBOARD_MOTOR {
+    // @issue:
+    //   - Extension stopped working after change to IDE
+    //   - motorDutyDirection()
+    // Workaround:
+    //   - Create BBOARD_MOTOR as class property instead of extending
+    //   - Use motorSpeedDirection()
+
+    export class Motor {
         // ::motor:class
         breath: util.BreathData = null
         speedMap: util.Map = null
         directionMap: util.Map = null
+        motor: bBoard_Motor.BBOARD_MOTOR = null
 
         constructor(
             side: bBoard_Motor.motorDriver = bBoard_Motor.motorDriver.right
         ) {
-            super(BoardID.zero, ClickID.Zero, side)
+            // super(BoardID.zero, ClickID.Zero, null)
+            // see @issue
+
+            this.motor = bBoard_Motor.createMotor(
+                side,
+                BoardID.zero,
+                ClickID.Zero,
+                bBoard_Motor.motorState.enabled
+            )
         }
 
         //% block="map $breathData=variables_get(breathData) to run $this(myMotor)|speed: $speedMapId|direction: $directionMapId"
@@ -1740,7 +1759,7 @@ namespace bioW_Motor {
         //% weight=200
 
         run(): void {
-            this.motorDutyDirection(
+            this.motor.motorSpeedDirection(
                 this.speedMap(this.breath),
                 this.directionMap(this.breath)
             )
