@@ -30,7 +30,7 @@ namespace bioW_Breath {
      * @return A new `BreathSensor` object.
      */
 
-    //% block="new breath sensor on pin %pin | with a gain of %gain"
+    //% block="new breath sensor on pin %pin|with a gain of %gain"
     //% pin.defl=AnalogPin.P2
     //% gain.defl=GainLevel.G2
     //% blockSetVariable="breath"
@@ -69,7 +69,7 @@ namespace bioW_Breath {
         position = 0 // sigmoid scaled
         dx = 0
         velocity = 0
-        duration = 0 // log scaled
+        speed = 0 // log scaled
 
         // Scaling
         hp_alpha: number = 0.995
@@ -215,7 +215,7 @@ namespace bioW_Breath {
                     this.velocity = (50 * s) / Math.sqrt(1 + s * s) + 50
                     serial.writeValue('velocity', this.velocity)
 
-                    // ==== Duration ====
+                    // ==== Speed ====
 
                     // Zero crossings
                     // And filter cycles that are too short or too shallow
@@ -278,10 +278,11 @@ namespace bioW_Breath {
                     // serial.writeValue('d2', this.d2[i])
 
                     // Scale
-                    this.duration =
-                        (100 / Math.log(30)) *
-                        Math.log(Math.clamp(1, 25, this.d2[i]))
-                    serial.writeValue('duration', this.duration)
+                    this.speed =
+                        (100 / Math.log(25)) *
+                        Math.log(25 / Math.clamp(1, 25, this.d2[i]))
+                    // (100 / Math.log(25)) * Math.log(Math.clamp(1, 25, this.d2[i]))
+                    serial.writeValue('speed', this.speed)
 
                     // Send over radio
                     if (this.stream) {
@@ -292,11 +293,7 @@ namespace bioW_Breath {
                             this.position
                         )
                         buffer.setNumber(NumberFormat.Float32LE, 4, this.dx)
-                        buffer.setNumber(
-                            NumberFormat.Float32LE,
-                            8,
-                            this.duration
-                        )
+                        buffer.setNumber(NumberFormat.Float32LE, 8, this.speed)
                         radio.sendBuffer(buffer)
                     }
                     t += this.period
@@ -319,15 +316,18 @@ namespace bioW_Breath {
 
     const positionMap: Map = (breath: BreathSensor) => breath.position
     const velocityMap: Map = (breath: BreathSensor) => breath.velocity
-    const durationMap: Map = (breath: BreathSensor) => breath.duration
+    const speedMap: Map = (breath: BreathSensor) => breath.speed
 
     /**
      * Enumeration of all possible mappings for the drawing length.
      */
     export enum LengthMaps {
+        //% block="Depth"
         Position,
+        //% block="Strength"
         Velocity,
-        Duration
+        //% block="Speed"
+        Speed
     }
 
     /**
@@ -336,7 +336,7 @@ namespace bioW_Breath {
      * @param brightness The brightness of the spiral (0 to 100).
      */
 
-    //% block="map the $mapId|of the $breath=variables_get(breath) to draw a spiral"
+    //% block="map the $breath=variables_get(breath)|$mapId to draw a spiral"
     //% inlineInputMode=inline
     //% group="On start: Map"
     //% weight=180
@@ -350,8 +350,8 @@ namespace bioW_Breath {
             case LengthMaps.Velocity:
                 breath.map = velocityMap
                 break
-            case LengthMaps.Duration:
-                breath.map = durationMap
+            case LengthMaps.Speed:
+                breath.map = speedMap
                 break
         }
     }
@@ -363,10 +363,10 @@ namespace bioW_Breath {
      * @param power The output power of the radio sender.
      */
 
-    //% block="send the $breath=variables_get(breath) over radio|to group $group|with a power of $power"
+    //% block="send the $breath=variables_get(breath) data|on channel $group|with a power of $power"
     //% group.min=0 group.max=255 group.defl=0
     //% power.min=0 power.max=7 power.defl=6
-    //% group="On start: Radio"
+    //% group="On start: Send"
     //% weight=200
 
     export function startRadioStreaming(
