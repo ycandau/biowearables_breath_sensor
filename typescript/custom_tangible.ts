@@ -18,8 +18,8 @@
  *     ::neo:draw
  *   ::motor
  *     ::motor:class
- *     ::map:speed
- *     ::map:direction
+ *     ::maps:speed
+ *     ::maps:direction
  *
  * Notes:
  *   @todo
@@ -114,11 +114,11 @@ namespace util {
                 }
             case LengthMaps.TargetFrequency:
                 return (breath) => {
-                    return breath.targetFrequency
+                    return breath.targetSpeed
                 }
             // case LengthMaps.TargetPositionRandomFrequency:
             //     return (breath) => {
-            //         return breath.targetFrequency
+            //         return breath.targetSpeed
             //     }
         }
     }
@@ -137,24 +137,26 @@ namespace util {
         ConstantGreen,
         //% block="Blue"
         ConstantBlue,
+        //% block="Purple"
+        ConstantPurple,
         //% block="Depth"
         Position,
         //% block="Strength"
         Velocity,
         //% block="Speed"
-        Frequency,
+        // Frequency,
         //% block="Target depth"
         TargetPosition,
         //% block="Target strength"
         TargetVelocity,
         //% block="Target speed"
-        TargetFrequency,
+        TargetFrequency
         //% block="Delta speed"
-        DeltaFrequency,
+        // DeltaFrequency,
         //% block="Zero crossing"
-        ZeroCrossing,
+        // ZeroCrossing,
         //% block="Increment Color"
-        IncrementColor
+        // IncrementColor
     }
 
     /**
@@ -177,6 +179,10 @@ namespace util {
             case ColorMaps.ConstantBlue:
                 return (breath) => {
                     return neopixel.colors(NeoPixelColors.Blue)
+                }
+            case ColorMaps.ConstantPurple:
+                return (breath) => {
+                    return neopixel.colors(NeoPixelColors.Purple)
                 }
             case ColorMaps.Position:
                 return (breath) => {
@@ -221,7 +227,7 @@ namespace util {
             case ColorMaps.TargetFrequency:
                 return (breath) => {
                     const radius = 20
-                    const distance = breath.frequency - breath.targetFrequency
+                    const distance = breath.frequency - breath.targetSpeed
                     if (distance < -radius) {
                         return neopixel.colors(NeoPixelColors.Blue)
                     } else if (distance > radius) {
@@ -233,7 +239,7 @@ namespace util {
             // case ColorMaps.DeltaFrequency:
             //     return (breath) => {
             //         const delta =
-            //             breath.frequency / breath.targetFrequency - 1
+            //             breath.frequency / breath.targetSpeed - 1
             //         if (delta < -0.1) {
             //             return neopixel.colors(NeoPixelColors.Green)
             //         } else if (delta > 0.1) {
@@ -287,11 +293,11 @@ namespace util {
         //% block="Target depth"
         TargetPosition,
         //% block="Target strength"
-        TargetVelocity,
+        // TargetVelocity,
         //% block="Target speed"
-        TargetFrequency,
+        TargetFrequency
         //% block="Delta speed"
-        DeltaFrequency
+        // DeltaFrequency
     }
 
     /**
@@ -331,26 +337,26 @@ namespace util {
                 return (breath) => {
                     return breath.targetPosition
                 }
-            case BrightnessMaps.TargetVelocity:
-                return (breath) => {
-                    const radius = 20
-                    const low = breath.targetVelocity - radius
-                    const high = breath.targetVelocity + radius
-                    if (breath.velocity < low) {
-                        // dim to max
-                        return map(0, low, 0, 100, breath.velocity)
-                    } else if (breath.velocity > high) {
-                        // max to dim
-                        return map(high, 100, 100, 0, breath.velocity)
-                    } else {
-                        // max
-                        return 100
-                    }
-                }
+            // case BrightnessMaps.TargetVelocity:
+            //     return (breath) => {
+            //         const radius = 20
+            //         const low = breath.targetVelocity - radius
+            //         const high = breath.targetVelocity + radius
+            //         if (breath.velocity < low) {
+            //             // dim to max
+            //             return map(0, low, 0, 100, breath.velocity)
+            //         } else if (breath.velocity > high) {
+            //             // max to dim
+            //             return map(high, 100, 100, 0, breath.velocity)
+            //         } else {
+            //             // max
+            //             return 100
+            //         }
+            //     }
             // case BrightnessMaps.DeltaFrequency: // @todo not finished in Arduino code
             //     return (breath) => {
             //         const delta =
-            //             breath.frequency / breath.targetFrequency - 1
+            //             breath.frequency / breath.targetSpeed - 1
             //         if (delta < -0.1) {
             //             return 100
             //         } else if (delta > 0.1) {
@@ -373,7 +379,7 @@ namespace util {
      * @return The scaled value rounded to an integer.
      */
     export function iscale(x: number, max: number): number {
-        return Math.clamp(0, max, Math.idiv(x * (max + 1), 100))
+        return Math.clamp(1, max, Math.idiv(x * max, 100) + 1)
     }
 
     /**
@@ -460,17 +466,24 @@ namespace bioW_Radio {
 
         targetPosition: number = 0
         targetVelocity: number = 0
-        targetFrequency: number = 12
+        targetFrequency: number = 8
+        targetSpeed: number = 0
 
         timeAtFreqChange: number = 0
         phaseAtFreqChange: number = 0
 
         constructor(group: number) {
+            this.targetSpeed =
+                (100 / Math.log(25)) *
+                Math.log(25 / Math.clamp(1, 25, 60 / this.targetFrequency))
             radio.setGroup(group & 0xff)
             radio.onReceivedBuffer((buffer) => {
                 this.position = buffer.getNumber(NumberFormat.Float32LE, 0)
                 this.velocity = buffer.getNumber(NumberFormat.Float32LE, 4)
                 this.frequency = buffer.getNumber(NumberFormat.Float32LE, 8)
+                serial.writeValue('x', this.position)
+                serial.writeValue('dx', this.velocity)
+                serial.writeValue('f', this.frequency)
             })
         }
 
@@ -488,9 +501,6 @@ namespace bioW_Radio {
             const phase = this.getPhase(time)
             this.targetPosition = 50 * Math.sin(phase) + 50
             this.targetVelocity = 50 * Math.cos(phase) + 50
-            serial.writeValue('phase', phase)
-            serial.writeValue('tx', this.targetPosition)
-            serial.writeValue('tdx', this.targetVelocity)
         }
 
         /**
@@ -502,12 +512,15 @@ namespace bioW_Radio {
         //% group="On start: Set parameters"
         //% weight=190
 
-        setFrequency(freq: number = 12): void {
+        setFrequency(freq: number = 8): void {
             if (freq !== this.targetFrequency) {
                 const time = control.millis()
                 this.phaseAtFreqChange = this.getPhase(time)
                 this.timeAtFreqChange = time
                 this.targetFrequency = freq
+                this.targetSpeed =
+                    (100 / Math.log(25)) *
+                    Math.log(25 / Math.clamp(1, 25, 60 / this.targetFrequency))
             }
         }
     }
@@ -931,27 +944,27 @@ namespace bioW_Motor {
     /**
      * Enumeration of all possible mappings for the motor speed.
      */
-    // ::map:speed
+    // ::maps:speed
     export enum SpeedMaps {
         Off = 400,
         //% block="Depth"
-        Position,
+        // Position,
         //% block="Speed"
-        Frequency,
+        // Frequency,
         //% block="Target depth"
-        TargetPosition,
+        TargetPosition
         //% block="Target strength"
-        TargetVelocity,
+        // TargetVelocity,
         //% block="Target speed Slow"
-        TargetFrequencySlow,
+        // TargetFrequencySlow,
         //% block="Target speed Fast"
-        TargetFrequencyFast,
+        // TargetFrequencyFast,
         //% block="Delta speed"
-        DeltaFrequency,
+        // DeltaFrequency,
         //% block="Exhale Only"
-        ExhaleOnly,
+        // ExhaleOnly,
         //% block="Physical Simulation"
-        PhysicalSimulation
+        // PhysicalSimulation
     }
 
     /**
@@ -967,22 +980,33 @@ namespace bioW_Motor {
                 return (breath) => {
                     return 0
                 }
-            case SpeedMaps.Position:
-                return (breath) => {
-                    return 10
-                }
-            case SpeedMaps.Frequency:
-                return (breath) => {
-                    return 0
-                }
+            // case SpeedMaps.Position:
+            //     return (breath) => {
+            //         return 0
+            //     }
+            // case SpeedMaps.Frequency:
+            //     return (breath) => {
+            //         return 0
+            //     }
             case SpeedMaps.TargetPosition:
                 return (breath) => {
-                    return 0
+                    const radius = 20
+                    const distance = Math.abs(
+                        breath.targetPosition - breath.position
+                    )
+                    return (100 - distance) / 3 + 10
+                    // if (distance <= radius) {
+                    //     return neopixel.colors(NeoPixelColors.Green)
+                    // } else if (distance <= 2 * radius) {
+                    //     return neopixel.colors(NeoPixelColors.Blue)
+                    // } else {
+                    //     return neopixel.colors(NeoPixelColors.Red)
+                    // }
                 }
-            case SpeedMaps.TargetVelocity:
-                return (breath) => {
-                    return 0
-                }
+            // case SpeedMaps.TargetVelocity:
+            //     return (breath) => {
+            //         return 0
+            //     }
             // case SpeedMaps.TargetFrequencySlow:
             //     return (breath) => {
             //         return 0
@@ -1012,13 +1036,13 @@ namespace bioW_Motor {
     // ::map:direction
     export enum DirectionMaps {
         Forward = 500,
-        Backward,
+        Backward
         //% block="Strength"
-        Velocity,
+        // Velocity,
         //% block="Target strength"
-        TargetVelocity,
+        // TargetVelocity,
         //% block="Delta speed"
-        TargetFrequency
+        // TargetFrequency
     }
 
     /**
@@ -1039,18 +1063,18 @@ namespace bioW_Motor {
                 return (breath) => {
                     return bBoard_Motor.motorDirection.backward
                 }
-            case DirectionMaps.Velocity:
-                return (breath) => {
-                    return bBoard_Motor.motorDirection.forward
-                }
-            case DirectionMaps.TargetVelocity:
-                return (breath) => {
-                    return bBoard_Motor.motorDirection.forward
-                }
-            case DirectionMaps.TargetFrequency:
-                return (breath) => {
-                    return bBoard_Motor.motorDirection.forward
-                }
+            // case DirectionMaps.Velocity:
+            //     return (breath) => {
+            //         return bBoard_Motor.motorDirection.forward
+            //     }
+            // case DirectionMaps.TargetVelocity:
+            //     return (breath) => {
+            //         return bBoard_Motor.motorDirection.forward
+            //     }
+            // case DirectionMaps.TargetFrequency:
+            //     return (breath) => {
+            //         return bBoard_Motor.motorDirection.forward
+            //     }
         }
     }
 

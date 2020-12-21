@@ -1,6 +1,23 @@
 /****************************************************************
- * Custom blocks for the BioWearables workshop
- * Breath sensor
+ * BioWearables library
+ * --------------------
+ * Custom blocks for the breath sensor
+ *
+ * Navigation:
+ *  ::gain
+ *  ::maps
+ *  ::draw
+ *  ::block:create
+ *  ::properties
+ *  ::methods
+ *  ::loop
+ *  ::position
+ *  ::velocity
+ *  ::direction
+ *  ::amplitude
+ *  ::intensity
+ *  ::speed
+ *  ::radio
  */
 
 //% weight=200
@@ -10,38 +27,167 @@
 // icon="\uf21e" heartbeat
 
 namespace bioW_Breath {
-    export enum GainLevel {
-        //% block="3"
-        G3 = 3,
+    const period = 100 // sampling period
+
+    // ==== ::gain ====
+
+    export enum GainIds {
         //% block="1"
-        G1 = 1,
+        G1,
         //% block="2"
-        G2 = 2,
+        G2,
+        //% block="3"
+        G3,
         //% block="4"
-        G4 = 4,
+        G4,
         //% block="5"
-        G5 = 5
+        G5
     }
+
+    const gainValues = [1, 2, 3, 4, 5]
+    const gainSymbols = ['1', '2', '3', '4', '5']
+
+    // ==== ::maps ====
+
+    export enum MapIds {
+        //% block="Level in the moment"
+        Position,
+        //% block="Amplitude over time"
+        PositionTrend,
+        //% block="Force in the moment"
+        Velocity,
+        //% block="Intensity over time"
+        VelocityTrend,
+        //% block="Direction"
+        Direction,
+        //% block="Speed over time"
+        Speed
+    }
+
+    const mapValues = [
+        drawPosition,
+        drawPositionTrend,
+        drawVelocity,
+        drawVelocityTrend,
+        drawDirection,
+        drawSpeed
+    ]
+    const mapSymbols = ['L', 'A', 'F', 'I', 'D', 'S']
+
+    // ==== ::draw ====
+
+    const low = 10
+
+    type DrawFunction = (breath: BreathSensor) => void
+
+    function osc(t: number): number {
+        return 50 * Math.sin((2 * Math.PI * control.millis()) / (t * 1000)) + 50
+    }
+
+    function scale(x: number, input: number, output: number): number {
+        return Math.clamp(0, output - 1, Math.idiv(x * output, input))
+    }
+
+    // Uses a string to define an ordered pattern in the LED matrix
+    function drawPattern(
+        pattern: String,
+        length: number,
+        brightness: number
+    ): void {
+        basic.clearScreen()
+        for (let i = 0; i < length; i++) {
+            let n = pattern.charCodeAt(i) - 97
+            led.plotBrightness(n % 5, Math.idiv(n, 5), brightness)
+        }
+    }
+
+    function drawDot(pattern: String, index: number, brightness: number) {
+        const n = pattern.charCodeAt(index) - 97
+        led.plotBrightness(n % 5, Math.idiv(n, 5), brightness)
+    }
+
+    // Level
+    const positionPattern = 'mnihglqrstojedcbafkpuvwxy'
+
+    function drawPosition(breath: BreathSensor): void {
+        const length = scale(breath.position, 100, 25)
+        drawPattern(positionPattern, length, low)
+        drawDot(positionPattern, length, 255)
+    }
+
+    // Amplitude
+    const positionAvgPattern = 'upkgcilmnoty'
+
+    function drawPositionTrend(breath: BreathSensor): void {
+        const avg = scale(breath.amplitude, 100, 12)
+        drawPattern(positionAvgPattern, 12, low)
+        drawDot(positionAvgPattern, avg, 255)
+    }
+
+    // Force
+    const posVelocityPattern = 'mnsrqpkfabcde'
+    const negVelocityPattern = 'mlghijotyxwvu'
+
+    function drawVelocity(breath: BreathSensor): void {
+        const length = scale(Math.abs(breath.velocity - 50), 50, 13)
+        const pattern =
+            breath.velocity >= 50 ? posVelocityPattern : negVelocityPattern
+        drawPattern(pattern, length, low)
+        drawDot(pattern, length, 255)
+    }
+
+    // Intensity
+    const velocityAvgPattern = 'uvwxyrmhabcde'
+
+    function drawVelocityTrend(breath: BreathSensor): void {
+        const avg = scale(breath.intensity, 100, 13)
+        drawPattern(velocityAvgPattern, 13, low)
+        drawDot(velocityAvgPattern, avg, 255)
+    }
+
+    // Direction
+    const exhalePattern = 'cghiklmnovx'
+    const inhalePattern = 'abcdeghimuy'
+
+    function drawDirection(breath: BreathSensor): void {
+        const pattern = breath.direction === 100 ? inhalePattern : exhalePattern
+        drawPattern(pattern, 11, 255)
+    }
+
+    // Speed
+    const speedPattern = 'uvwxytonmlkfabcde'
+
+    function drawSpeed(breath: BreathSensor): void {
+        const speed = scale(breath.speed, 100, 17)
+        drawPattern(speedPattern, 17, low)
+        drawDot(speedPattern, speed, 255)
+    }
+
+    // ==== ::block:create ====
 
     /**
      * Create an object to manage a breath sensor connected to the micro:bit or the b.Board.
      * @param pin The pin to which the breath sensor is connected.
-     * @param gain The gain applied to amplify the signal from the sensor.
+     * @param gain The gain level applied to amplify the signal from the sensor.
+     * @param map The map used to display the data from the sensor.
      * @return A new `BreathSensor` object.
      */
 
-    //% block="new breath sensor on pin %pin|with a gain of %gain"
-    //% pin.defl=AnalogPin.P2
-    //% gain.defl=GainLevel.G2
+    //% block="new breath sensor with a gain of $gain|mapping the $map"
+    // block="new breath sensor on pin $pin|with a gain of $gain|mapping the $map"
+    // pin.defl=AnalogPin.P2
+    //% gain.defl=GainIds.G3
+    //% map.defl=MapIds.Position
     //% blockSetVariable="breath"
     //% group="On start: Create"
     //% weight=200
 
     export function createBreathSensor(
-        pin: AnalogPin = AnalogPin.P2,
-        gain: GainLevel = GainLevel.G3
+        // pin: AnalogPin = AnalogPin.P2,
+        gain: GainIds = GainIds.G3,
+        map: MapIds = MapIds.Position
     ): BreathSensor {
-        return new BreathSensor(pin, gain)
+        return new BreathSensor(AnalogPin.P2, gain, map)
     }
 
     /**
@@ -50,8 +196,9 @@ namespace bioW_Breath {
      * store the value, and calculate the associated values.
      */
     export class BreathSensor {
+        // ==== ::properties ====
+
         // Input
-        period: number = 100 // sampling period
         index: number = 0 // index of polling cycles
         t_offset: number = 0 // offset for reading time
         t_read: number = 0 // last reading time
@@ -61,61 +208,91 @@ namespace bioW_Breath {
         // Circular buffers for signal processing
         x0 = [0, 0, 0, 0, 0] // interpolated
         x1 = [0, 0, 0, 0, 0] // low-pass Butterworth filter
-        x2 = [0, 0, 0, 0, 0] // DC offset with high-pass filter
-        d1 = [0, 0, 0, 0, 0] // zero-crossings
-        d2 = [0, 0, 0, 0, 0] // low-pass Butterworth filter
-
-        // Features extracted
-        position = 0 // sigmoid scaled
+        x2 = [0, 0, 0] // DC offset with high-pass filter
+        a1 = [0, 0, 0] // amplitude
+        a2 = [0, 0, 0] // low-pass Butterworth filter
+        i1 = [0, 0, 0] // intensity
+        i2 = [0, 0, 0] // low-pass Butterworth filter
+        d1 = [0, 0, 0] // zero-crossings
+        d2 = [0, 0, 0] // low-pass Butterworth filter
         dx = 0
-        velocity = 0
-        speed = 0 // log scaled
 
-        // Scaling
+        // Features
+        position = 0 // sigmoid scaled
+        amplitude = 0
+        velocity = 0
+        intensity = 0
+        speed = 0 // log scaled
+        direction = 50 // zero crossing
+
+        // Settings
         hp_alpha: number = 0.995
-        gain: number = 3
+        gainId: number = 0
+        mapId: number = 0
+
+        // Position extrema
+        x_min = 0
+        x_min_prev = 0
+        x_max = 0
+        x_max_prev = 0
+
+        // Velocity extrema
+        dx_min = 0 // min over current cycle
+        dx_min_prev = 0
+        dx_max = 0 // max over current cycle
+        dx_max_prev = 0
 
         // Zero crossing
-        dx_min = 0 // min over current cycle
-        dx_max = 0 // max over current cycle
-        dx_sign = 0 // velocity sign
         zx_up = [0, 0, 0] // circular buffer for crossings up
         zx_up_i = 0 // buffer index
         zx_down = [0, 0, 0] // circular buffer for crossings down
         zx_down_i = 0 // buffer index
 
-        // Radio
-        stream: boolean = false
-
         // Draw
-        map: Map = positionMap
+        draw: DrawFunction = drawPosition
         pauseDrawUntil: number = 0 // pause drawing after button pressed
 
-        init() {
-            this.x_offset = Math.clamp(400, 700, pins.analogReadPin(this.pin))
-            this.hp_alpha = 0.8 // transient parameter value for DC offset
-        }
+        // ==== ::methods ====
 
-        changeGain(gain: number = 3, delta: number = 0) {
-            this.gain = Math.clamp(1, 5, gain + delta)
-            this.pauseDrawUntil = control.millis() + 1000
-            basic.showNumber(this.gain)
-        }
-
-        // Constructor
-        constructor(private pin: AnalogPin, gain: number) {
+        init(): void {
             this.t_offset = control.millis()
-            this.init()
-            this.changeGain(gain, 0)
+            this.reset()
+            radio.setGroup(0)
+            radio.setTransmitPower(6)
+        }
 
-            input.onButtonPressed(Button.B, function () {
-                this.init()
-                this.changeGain(this.gain, 1)
+        reset(): void {
+            this.x_offset = Math.clamp(400, 700, pins.analogReadPin(this.pin))
+            this.hp_alpha = 0.8 // initial value for adaptive DC offset
+        }
+
+        setGain(id: GainIds): void {
+            this.reset()
+            this.gainId = id
+            this.pauseDrawUntil = control.millis() + 1000
+            basic.showString(gainSymbols[id])
+        }
+
+        setMap(id: MapIds): void {
+            this.mapId = id
+            this.draw = mapValues[id]
+            this.pauseDrawUntil = control.millis() + 1000
+            basic.showString(mapSymbols[id])
+        }
+
+        constructor(private pin: AnalogPin, gain: GainIds, map: MapIds) {
+            this.init()
+            this.setGain(gain)
+            this.setMap(map)
+
+            // To change the gain
+            input.onButtonPressed(Button.A, () => {
+                this.setGain((this.gainId + 1) % gainValues.length)
             })
 
-            input.onButtonPressed(Button.A, function () {
-                this.init()
-                this.changeGain(this.gain, -1)
+            // To change the display
+            input.onButtonPressed(Button.B, () => {
+                this.setMap((this.mapId + 1) % mapValues.length)
             })
 
             // Start sampling loop
@@ -124,28 +301,40 @@ namespace bioW_Breath {
             })
         }
 
+        // ==== ::loop ====
+
         /**
          * Read the sensor data on a separate forever loop
-         * for more reliable sampling frequency and to avoid issues
-         * such as multiple readings in the public forever loop.
+         * for a more reliable sampling frequency.
          */
         samplingLoop() {
             while (true) {
                 // Read analog input
                 const t_new_read = control.millis() - this.t_offset
-                const x_new_read = pins.analogReadPin(this.pin) - this.x_offset
-                // serial.writeValue("x_new", x_new_read)
+                let x_new_read = pins.analogReadPin(this.pin)
+                x_new_read =
+                    x_new_read === 1023 || x_new_read === 0
+                        ? this.x_read // prevent false contact readings
+                        : x_new_read - this.x_offset
+                // serial.writeValue("x_new", x_new_read + this.x_offset)
 
-                let t = (this.index + 1) * this.period
+                // Loop and interpolate through even time points
+                let t = (this.index + 1) * period
                 while (t <= t_new_read) {
                     this.index++
+
+                    // Indexes for ring buffers of length 5
                     const i = this.index % 5
                     const i_1 = (i + 4) % 5
                     const i_2 = (i + 3) % 5
                     const i_3 = (i + 2) % 5
                     const i_4 = (i + 1) % 5
 
-                    // ==== Position ====
+                    const j = this.index % 3
+                    const j_1 = (j + 2) % 3
+                    const j_2 = (j + 1) % 3
+
+                    // ==== ::position ====
 
                     // Interpolate
                     this.x0[i] =
@@ -156,36 +345,25 @@ namespace bioW_Breath {
 
                     // Low-pass filter
                     // Butterworth: 3rd order, wc = 0.3
-                    const low_pass_num = [
-                        4.95329964e-2,
-                        1.48598989e-1,
-                        1.48598989e-1,
-                        4.95329964e-2
-                    ]
-                    const low_pass_den = [
-                        -1.16191748,
-                        6.95942756e-1,
-                        -1.37761301e-1
-                    ]
                     this.x1[i] =
-                        this.x0[i] * low_pass_num[0] +
-                        this.x0[i_1] * low_pass_num[1] +
-                        this.x0[i_2] * low_pass_num[2] +
-                        this.x0[i_3] * low_pass_num[3] -
-                        this.x1[i_1] * low_pass_den[0] -
-                        this.x1[i_2] * low_pass_den[1] -
-                        this.x1[i_3] * low_pass_den[2]
+                        4.95329964e-2 *
+                            (this.x0[i] +
+                                3 * (this.x0[i_1] + this.x0[i_2]) +
+                                this.x0[i_3]) +
+                        1.16191748 * this.x1[i_1] -
+                        6.95942756e-1 * this.x1[i_2] +
+                        1.37761301e-1 * this.x1[i_3]
                     // serial.writeValue("x1", this.x1[i])
 
                     // DC offset
                     // Adaptive high-pass: alpha ramps from 0.8 to 0.995
-                    this.x2[i] =
-                        this.x1[i] - this.x1[i_1] + this.hp_alpha * this.x2[i_1]
+                    this.x2[j] =
+                        this.x1[i] - this.x1[i_1] + this.hp_alpha * this.x2[j_1]
                     this.hp_alpha = 0.8 * this.hp_alpha + 0.2 * 0.995
-                    // serial.writeValue("x2", this.gain * this.x2[i])
+                    // serial.writeValue("x2", this.x2[j])
 
                     // Scale the position
-                    let s = this.gain * (this.x2[i] - 7)
+                    let s = gainValues[this.gainId] * (this.x2[j] - 7)
                     if (s < -45) {
                         s = (s + 45) / 5
                         this.position = (5 * s) / (1 - s) + 5
@@ -195,9 +373,9 @@ namespace bioW_Breath {
                     } else {
                         this.position = s + 50
                     }
-                    serial.writeValue('position', this.position)
+                    // serial.writeValue('position', this.position)
 
-                    // ==== Velocity ====
+                    // ==== ::velocity ====
 
                     // Derivate
                     // Backward finite difference: Accuracy = 4
@@ -208,52 +386,113 @@ namespace bioW_Breath {
                             (4 / 3) * this.x1[i_3] +
                             (1 / 4) * this.x1[i_4]) *
                             1000) /
-                        this.period
+                        period
                     // serial.writeValue('dx', this.dx)
 
                     s = this.dx / 50
                     this.velocity = (50 * s) / Math.sqrt(1 + s * s) + 50
-                    serial.writeValue('velocity', this.velocity)
+                    // serial.writeValue('velocity', this.velocity)
 
-                    // ==== Speed ====
+                    // ==== ::direction ====
 
                     // Zero crossings
                     // And filter cycles that are too short or too shallow
+                    this.x_min = Math.min(this.x1[i], this.x_min)
+                    this.x_max = Math.max(this.x1[i], this.x_max)
                     this.dx_min = Math.min(this.dx, this.dx_min)
                     this.dx_max = Math.max(this.dx, this.dx_max)
-                    if (this.dx_sign !== 1 && this.dx > 3) {
+                    if (this.direction !== 100 && this.dx > 3) {
                         // Upward
-                        this.dx_sign = 1
+                        this.direction = 100
                         // Log if long enough or preceded by deep dip
                         if (
                             this.index - this.zx_down[this.zx_down_i] > 5 ||
                             this.dx_min < -8
                         ) {
+                            // Store and reset position extrema
+                            this.x_max = this.x_min
+                            this.x_min_prev = this.x_min
+                            // Store and reset velocity extrema
+                            this.dx_max = this.dx
+                            this.dx_min_prev = this.dx_max
+                            this.dx_max_prev = this.dx_max
+                            // Push index of crossing up
                             this.zx_up_i = (this.zx_up_i + 1) % 3
                             this.zx_up[this.zx_up_i] = this.index
-                            this.dx_max = this.dx
-                            // Otherwise discard previous crossing down
                         } else {
+                            // Otherwise discard previous crossing down
                             this.zx_down_i = (this.zx_down_i + 2) % 3
                         }
-                    } else if (this.dx_sign !== -1 && this.dx < -3) {
+                    } else if (this.direction !== 0 && this.dx < -3) {
                         // Downward
-                        this.dx_sign = -1
+                        this.direction = 0
                         if (
                             this.index - this.zx_up[this.zx_up_i] > 5 ||
                             this.dx_max > 8
                         ) {
+                            this.x_min = this.x_max
+                            this.x_max_prev = this.x_max
+                            this.dx_min = this.dx
+                            this.dx_min_prev = this.dx_min
+                            this.dx_max_prev = this.dx_min
                             this.zx_down_i = (this.zx_down_i + 1) % 3
                             this.zx_down[this.zx_down_i] = this.index
-                            this.dx_min = this.dx
                         } else {
                             this.zx_up_i = (this.zx_up_i + 2) % 3
                         }
                     }
-                    serial.writeValue('zx', this.dx_sign)
+                    // serial.writeValue('direction', this.direction)
+
+                    // ==== ::amplitude ====
+
+                    this.a1[j] =
+                        Math.max(this.x_max, this.x_max_prev) -
+                        Math.min(this.x_min, this.x_min_prev)
+                    // serial.writeValue('a1', this.a1[j])
+
+                    // Low-pass filter
+                    // Butterworth: 2nd order, wc = 0.03
+                    this.a2[j] =
+                        2.08056714e-3 *
+                            (this.a1[j] + 2 * this.a1[j_1] + this.a1[j_2]) +
+                        1.86689228 * this.a2[j_1] -
+                        8.75214548e-1 * this.a2[j_2]
+                    // serial.writeValue('a2', this.a2[j])
+
+                    // @todo scale amplitude
+                    // Log scale
+                    this.amplitude =
+                        (100 / Math.log(10 / 60)) *
+                        Math.log(10 / Math.clamp(10, 60, this.a2[j]))
+                    // serial.writeValue('amplitude', this.amplitude)
+
+                    // ==== ::intensity ====
+
+                    this.i1[j] =
+                        Math.max(this.dx_max, this.dx_max_prev) -
+                        Math.min(this.dx_min, this.dx_min_prev)
+                    // serial.writeValue('i1', this.i1[j])
+
+                    // Low-pass filter
+                    // Butterworth: 2nd order, wc = 0.03
+                    this.i2[j] =
+                        2.08056714e-3 *
+                            (this.i1[j] + 2 * this.i1[j_1] + this.i1[j_2]) +
+                        1.86689228 * this.i2[j_1] -
+                        8.75214548e-1 * this.i2[j_2]
+                    // serial.writeValue('i2', this.i2[j])
+
+                    // @todo decay previous extrema
+                    // Log scale
+                    this.intensity =
+                        (100 / Math.log(10 / 250)) *
+                        Math.log(10 / Math.clamp(10, 250, this.i2[j]))
+                    // serial.writeValue('intensity', this.intensity)
+
+                    // ==== ::speed ====
 
                     // Duration
-                    this.d1[i] =
+                    this.d1[j] =
                         0.05 *
                         (Math.max(
                             this.zx_up[this.zx_up_i] -
@@ -265,154 +504,47 @@ namespace bioW_Breath {
                                     this.zx_down[(this.zx_down_i + 2) % 3],
                                 this.index - this.zx_down[this.zx_down_i]
                             ))
-                    // serial.writeValue('d1', this.d1[i])
+                    // serial.writeValue('d1', this.d1[j])
 
                     // Low-pass filter
                     // Butterworth: 2nd order, wc = 0.03
-                    this.d2[i] =
-                        2.08056714e-3 * this.d1[i] +
-                        4.16113427e-3 * this.d1[i_1] +
-                        2.08056714e-3 * this.d1[i_2] +
-                        1.86689228 * this.d2[i_1] -
-                        8.75214548e-1 * this.d2[i_2]
-                    // serial.writeValue('d2', this.d2[i])
+                    this.d2[j] =
+                        2.08056714e-3 *
+                            (this.d1[j] + 2 * this.d1[j_1] + this.d1[j_2]) +
+                        1.86689228 * this.d2[j_1] -
+                        8.75214548e-1 * this.d2[j_2]
+                    // serial.writeValue('d2', this.d2[j])
 
-                    // Scale
+                    // Log scale
                     this.speed =
-                        (100 / Math.log(25)) *
-                        Math.log(25 / Math.clamp(1, 25, this.d2[i]))
-                    // (100 / Math.log(25)) * Math.log(Math.clamp(1, 25, this.d2[i]))
-                    serial.writeValue('speed', this.speed)
+                        (100 / Math.log(20)) *
+                        Math.log(20 / Math.clamp(1, 20, this.d2[j]))
+                    // serial.writeValue('speed', this.speed)
+
+                    // ==== ::radio ====
 
                     // Send over radio
-                    if (this.stream) {
-                        const buffer = pins.createBuffer(12)
-                        buffer.setNumber(
-                            NumberFormat.Float32LE,
-                            0,
-                            this.position
-                        )
-                        buffer.setNumber(NumberFormat.Float32LE, 4, this.dx)
-                        buffer.setNumber(NumberFormat.Float32LE, 8, this.speed)
-                        radio.sendBuffer(buffer)
-                    }
-                    t += this.period
+                    const buffer = pins.createBuffer(24)
+                    buffer.setNumber(NumberFormat.Float32LE, 0, this.position)
+                    buffer.setNumber(NumberFormat.Float32LE, 4, this.amplitude)
+                    buffer.setNumber(NumberFormat.Float32LE, 8, this.velocity)
+                    buffer.setNumber(NumberFormat.Float32LE, 12, this.intensity)
+                    buffer.setNumber(NumberFormat.Float32LE, 16, this.direction)
+                    buffer.setNumber(NumberFormat.Float32LE, 20, this.speed)
+                    radio.sendBuffer(buffer)
+
+                    t += period
                 }
 
                 // Draw on micro:bit
                 if (control.millis() > this.pauseDrawUntil) {
-                    drawSpiral(this.map(this))
+                    this.draw(this)
                 }
 
                 // Update the time and value of the latest reading
                 this.t_read = t_new_read
                 this.x_read = x_new_read
                 basic.pause(t - control.millis() + this.t_offset)
-            }
-        }
-    }
-
-    type Map = (breath: BreathSensor) => number
-
-    const positionMap: Map = (breath: BreathSensor) => breath.position
-    const velocityMap: Map = (breath: BreathSensor) => breath.velocity
-    const speedMap: Map = (breath: BreathSensor) => breath.speed
-
-    /**
-     * Enumeration of all possible mappings for the drawing length.
-     */
-    export enum LengthMaps {
-        //% block="Depth"
-        Position,
-        //% block="Strength"
-        Velocity,
-        //% block="Speed"
-        Speed
-    }
-
-    /**
-     * Set the mapping applied to the length of the spiral.
-     * @param length The length of the spiral (0 to 100).
-     * @param brightness The brightness of the spiral (0 to 100).
-     */
-
-    //% block="map the $breath=variables_get(breath)|$mapId to draw a spiral"
-    //% inlineInputMode=inline
-    //% group="On start: Map"
-    //% weight=180
-
-    export function mapToSpiral(breath: BreathSensor, mapId: LengthMaps): void {
-        switch (mapId) {
-            default:
-            case LengthMaps.Position:
-                breath.map = positionMap
-                break
-            case LengthMaps.Velocity:
-                breath.map = velocityMap
-                break
-            case LengthMaps.Speed:
-                breath.map = speedMap
-                break
-        }
-    }
-
-    /**
-     * Start streaming values over radio from a `BreathSensor` object.
-     * @param breath A `BreathSensor` object to stream from.
-     * @param group The group ID for radio communications.
-     * @param power The output power of the radio sender.
-     */
-
-    //% block="send the $breath=variables_get(breath) data|on channel $group|with a power of $power"
-    //% group.min=0 group.max=255 group.defl=0
-    //% power.min=0 power.max=7 power.defl=6
-    //% group="On start: Send"
-    //% weight=200
-
-    export function startRadioStreaming(
-        breath: bioW_Breath.BreathSensor,
-        group: number = 0,
-        power: number = 7
-    ): void {
-        radio.setGroup(group)
-        radio.setTransmitPower(power)
-        breath.stream = true
-    }
-
-    /**
-     * Draw a spiral on the Microbit LED matrix.
-     * @param length The length of the spiral (0 to 100).
-     * @param brightness The brightness of the spiral (0 to 100).
-     */
-
-    // block="draw spiral: length = $length|brightness = $brightness"
-    //% length.min=0 length.max=100 length.defl=25
-    //% brightness.min=0 brightness.max=100 brightness.defl=10
-    //% inlineInputMode=inline
-    //% group="Forever: Draw"
-    //% weight=1850
-
-    export function drawSpiral(length: number): void {
-        let n = 12 // (2, 2)
-        const dn = [1, -5, -1, 5] // right, up, left, down
-        // Clockwise is [1, 5, -1, -5] // right, down, left, up
-
-        length = Math.clamp(1, 25, Math.idiv(length, 4) + 1)
-        led.setBrightness(50)
-
-        // Unplot LEDs manually because basic.clearScreen() creates flickering
-        for (
-            let segmentIndex = 0, count = 0;
-            segmentIndex < 9;
-            segmentIndex++
-        ) {
-            for (let i = 0; i < (segmentIndex >> 1) + 1; i++, count++) {
-                if (count < length) {
-                    led.plot(n % 5, Math.idiv(n, 5))
-                } else {
-                    led.unplot(n % 5, Math.idiv(n, 5))
-                }
-                n += dn[segmentIndex % 4]
             }
         }
     }

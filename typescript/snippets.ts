@@ -16,7 +16,7 @@ let fd5_dx =
 serial.writeValue('fd5_dx', fd5_dx)
 
 //****************************************************************
-// Savitzky–Golay filter: Quadratic / Cubic
+// Savitzky–Golay filter: Quadratic / Cubic / 5 values
 let savgol =
     (-3 * this.positions[(index + 1) % this.nSamples] +
         12 * this.positions[(index + 2) % this.nSamples] +
@@ -27,7 +27,7 @@ let savgol =
 serial.writeValue('savgol', savgol)
 
 //****************************************************************
-// Savitzky–Golay filter: Derivative / Cubic / Quartic
+// Savitzky–Golay filter: Derivative / Cubic / Quartic / 5 values
 let dsavgol =
     (1 * this.positions[(index + 1) % this.nSamples] -
         8 * this.positions[(index + 2) % this.nSamples] +
