@@ -14,8 +14,8 @@
  *  ::position
  *  ::velocity
  *  ::direction
- *  ::amplitude
- *  ::intensity
+ *  ::posrange
+ *  ::velrange
  *  ::speed
  *  ::radio
  */
@@ -37,56 +37,44 @@ namespace bioW_Breath {
         //% block="2"
         G2,
         //% block="3"
-        G3,
-        //% block="4"
-        G4,
-        //% block="5"
-        G5
+        G3
     }
 
-    const gainValues = [1, 2, 3, 4, 5]
-    const gainSymbols = ['1', '2', '3', '4', '5']
+    const gainValues = [3, 4, 5]
+    const gainSymbols = ['1', '2', '3']
 
     // ==== ::maps ====
 
     export enum MapIds {
-        //% block="Level in the moment"
+        //% block="Depth"
         Position,
-        //% block="Amplitude over time"
-        PositionTrend,
-        //% block="Force in the moment"
+        //% block="Average depth"
+        PositionAmpl,
+        //% block="Strength"
         Velocity,
-        //% block="Intensity over time"
-        VelocityTrend,
-        //% block="Direction"
+        //% block="Average strength"
+        VelocityAmpl,
+        //% block="Inhale / Exhale"
         Direction,
-        //% block="Speed over time"
+        //% block="Speed"
         Speed
     }
 
     const mapValues = [
         drawPosition,
-        drawPositionTrend,
+        drawPositionAmpl,
         drawVelocity,
-        drawVelocityTrend,
+        drawVelocityAmpl,
         drawDirection,
         drawSpeed
     ]
-    const mapSymbols = ['L', 'A', 'F', 'I', 'D', 'S']
+    const mapSymbols = ['A', 'B', 'C', 'D', 'E', 'F']
 
     // ==== ::draw ====
 
     const low = 10
 
     type DrawFunction = (breath: BreathSensor) => void
-
-    function osc(t: number): number {
-        return 50 * Math.sin((2 * Math.PI * control.millis()) / (t * 1000)) + 50
-    }
-
-    function scale(x: number, input: number, output: number): number {
-        return Math.clamp(0, output - 1, Math.idiv(x * output, input))
-    }
 
     // Uses a string to define an ordered pattern in the LED matrix
     function drawPattern(
@@ -106,43 +94,43 @@ namespace bioW_Breath {
         led.plotBrightness(n % 5, Math.idiv(n, 5), brightness)
     }
 
-    // Level
+    // Position / Depth
     const positionPattern = 'mnihglqrstojedcbafkpuvwxy'
 
     function drawPosition(breath: BreathSensor): void {
-        const length = scale(breath.position, 100, 25)
+        const length = (breath.position * 25) >> 16
         drawPattern(positionPattern, length, low)
         drawDot(positionPattern, length, 255)
     }
 
-    // Amplitude
-    const positionAvgPattern = 'upkgcilmnoty'
+    // Average position / Depth
+    const positionAmplPattern = 'uvwxtojdcbafkp'
 
-    function drawPositionTrend(breath: BreathSensor): void {
-        const avg = scale(breath.amplitude, 100, 12)
-        drawPattern(positionAvgPattern, 12, low)
-        drawDot(positionAvgPattern, avg, 255)
+    function drawPositionAmpl(breath: BreathSensor): void {
+        const avg = (breath.posAmpl * 11) >> 16
+        drawPattern(positionAmplPattern, 14, low)
+        drawDot(positionAmplPattern, avg, 255)
     }
 
-    // Force
+    // Velocity / Strength
     const posVelocityPattern = 'mnsrqpkfabcde'
     const negVelocityPattern = 'mlghijotyxwvu'
 
     function drawVelocity(breath: BreathSensor): void {
-        const length = scale(Math.abs(breath.velocity - 50), 50, 13)
+        const length = (Math.abs(breath.velocity - 0x7fff) * 13) >> 15
         const pattern =
-            breath.velocity >= 50 ? posVelocityPattern : negVelocityPattern
+            breath.velocity >= 0x7fff ? posVelocityPattern : negVelocityPattern
         drawPattern(pattern, length, low)
         drawDot(pattern, length, 255)
     }
 
-    // Intensity
-    const velocityAvgPattern = 'uvwxyrmhabcde'
+    // Average velocity / Strength
+    const velocityAmplPattern = 'uvwxytonmlkfabcde'
 
-    function drawVelocityTrend(breath: BreathSensor): void {
-        const avg = scale(breath.intensity, 100, 13)
-        drawPattern(velocityAvgPattern, 13, low)
-        drawDot(velocityAvgPattern, avg, 255)
+    function drawVelocityAmpl(breath: BreathSensor): void {
+        const avg = (breath.velAmpl * 17) >> 16
+        drawPattern(velocityAmplPattern, 17, low)
+        drawDot(velocityAmplPattern, avg, 255)
     }
 
     // Direction
@@ -150,7 +138,7 @@ namespace bioW_Breath {
     const inhalePattern = 'abcdeghimuy'
 
     function drawDirection(breath: BreathSensor): void {
-        const pattern = breath.direction === 100 ? inhalePattern : exhalePattern
+        const pattern = breath.direction === 0 ? exhalePattern : inhalePattern
         drawPattern(pattern, 11, 255)
     }
 
@@ -158,7 +146,7 @@ namespace bioW_Breath {
     const speedPattern = 'uvwxytonmlkfabcde'
 
     function drawSpeed(breath: BreathSensor): void {
-        const speed = scale(breath.speed, 100, 17)
+        const speed = (breath.speed * 17) >> 16
         drawPattern(speedPattern, 17, low)
         drawDot(speedPattern, speed, 255)
     }
@@ -173,10 +161,8 @@ namespace bioW_Breath {
      * @return A new `BreathSensor` object.
      */
 
-    //% block="new breath sensor with a gain of $gain|mapping the $map"
-    // block="new breath sensor on pin $pin|with a gain of $gain|mapping the $map"
-    // pin.defl=AnalogPin.P2
-    //% gain.defl=GainIds.G3
+    //% block="new breath sensor with a boost level of $gain|mapping the $map"
+    //% gain.defl=GainIds.G1
     //% map.defl=MapIds.Position
     //% blockSetVariable="breath"
     //% group="On start: Create"
@@ -184,7 +170,7 @@ namespace bioW_Breath {
 
     export function createBreathSensor(
         // pin: AnalogPin = AnalogPin.P2,
-        gain: GainIds = GainIds.G3,
+        gain: GainIds = GainIds.G1,
         map: MapIds = MapIds.Position
     ): BreathSensor {
         return new BreathSensor(AnalogPin.P2, gain, map)
@@ -209,9 +195,9 @@ namespace bioW_Breath {
         x0 = [0, 0, 0, 0, 0] // interpolated
         x1 = [0, 0, 0, 0, 0] // low-pass Butterworth filter
         x2 = [0, 0, 0] // DC offset with high-pass filter
-        a1 = [0, 0, 0] // amplitude
+        a1 = [0, 0, 0] // position range
         a2 = [0, 0, 0] // low-pass Butterworth filter
-        i1 = [0, 0, 0] // intensity
+        i1 = [0, 0, 0] // velocity range
         i2 = [0, 0, 0] // low-pass Butterworth filter
         d1 = [0, 0, 0] // zero-crossings
         d2 = [0, 0, 0] // low-pass Butterworth filter
@@ -219,11 +205,11 @@ namespace bioW_Breath {
 
         // Features
         position = 0 // sigmoid scaled
-        amplitude = 0
+        posAmpl = 0
         velocity = 0
-        intensity = 0
+        velAmpl = 0
+        direction = 0x7fff // zero crossing
         speed = 0 // log scaled
-        direction = 50 // zero crossing
 
         // Settings
         hp_alpha: number = 0.995
@@ -363,16 +349,9 @@ namespace bioW_Breath {
                     // serial.writeValue("x2", this.x2[j])
 
                     // Scale the position
-                    let s = gainValues[this.gainId] * (this.x2[j] - 7)
-                    if (s < -45) {
-                        s = (s + 45) / 5
-                        this.position = (5 * s) / (1 - s) + 5
-                    } else if (s > 45) {
-                        s = (s - 45) / 5
-                        this.position = (5 * s) / (1 + s) + 95
-                    } else {
-                        this.position = s + 50
-                    }
+                    let s = gainValues[this.gainId] * (this.x2[j] - 6)
+                    this.position =
+                        Math.clamp(0, 0xffff, s * 0x01ff + 0x7fff) >> 0
                     // serial.writeValue('position', this.position)
 
                     // ==== ::velocity ====
@@ -380,17 +359,17 @@ namespace bioW_Breath {
                     // Derivate
                     // Backward finite difference: Accuracy = 4
                     this.dx =
-                        (((25 / 12) * this.x1[i] -
+                        ((25 / 12) * this.x1[i] -
                             4 * this.x1[i_1] +
                             3 * this.x1[i_2] -
                             (4 / 3) * this.x1[i_3] +
                             (1 / 4) * this.x1[i_4]) *
-                            1000) /
-                        period
+                        (1000 / period)
                     // serial.writeValue('dx', this.dx)
 
-                    s = this.dx / 50
-                    this.velocity = (50 * s) / Math.sqrt(1 + s * s) + 50
+                    s = 0.02 * this.dx
+                    this.velocity =
+                        (0x7fff * (s / Math.sqrt(1 + s ** 2) + 1)) >> 0
                     // serial.writeValue('velocity', this.velocity)
 
                     // ==== ::direction ====
@@ -401,9 +380,9 @@ namespace bioW_Breath {
                     this.x_max = Math.max(this.x1[i], this.x_max)
                     this.dx_min = Math.min(this.dx, this.dx_min)
                     this.dx_max = Math.max(this.dx, this.dx_max)
-                    if (this.direction !== 100 && this.dx > 3) {
+                    if (this.direction !== 0xffff && this.dx > 4) {
                         // Upward
-                        this.direction = 100
+                        this.direction = 0xffff
                         // Log if long enough or preceded by deep dip
                         if (
                             this.index - this.zx_down[this.zx_down_i] > 5 ||
@@ -423,7 +402,7 @@ namespace bioW_Breath {
                             // Otherwise discard previous crossing down
                             this.zx_down_i = (this.zx_down_i + 2) % 3
                         }
-                    } else if (this.direction !== 0 && this.dx < -3) {
+                    } else if (this.direction !== 0 && this.dx < -5) {
                         // Downward
                         this.direction = 0
                         if (
@@ -443,7 +422,7 @@ namespace bioW_Breath {
                     }
                     // serial.writeValue('direction', this.direction)
 
-                    // ==== ::amplitude ====
+                    // ==== ::posrange ====
 
                     this.a1[j] =
                         Math.max(this.x_max, this.x_max_prev) -
@@ -459,14 +438,15 @@ namespace bioW_Breath {
                         8.75214548e-1 * this.a2[j_2]
                     // serial.writeValue('a2', this.a2[j])
 
-                    // @todo scale amplitude
                     // Log scale
-                    this.amplitude =
-                        (100 / Math.log(10 / 60)) *
-                        Math.log(10 / Math.clamp(10, 60, this.a2[j]))
-                    // serial.writeValue('amplitude', this.amplitude)
+                    this.posAmpl =
+                        ((0xffff / Math.log(10 / 60)) *
+                            (Math.log(10) -
+                                Math.log(Math.clamp(10, 60, this.a2[j])))) >>
+                        0
+                    // serial.writeValue('posampl', this.posAmpl)
 
-                    // ==== ::intensity ====
+                    // ==== ::velrange ====
 
                     this.i1[j] =
                         Math.max(this.dx_max, this.dx_max_prev) -
@@ -484,10 +464,12 @@ namespace bioW_Breath {
 
                     // @todo decay previous extrema
                     // Log scale
-                    this.intensity =
-                        (100 / Math.log(10 / 250)) *
-                        Math.log(10 / Math.clamp(10, 250, this.i2[j]))
-                    // serial.writeValue('intensity', this.intensity)
+                    this.velAmpl =
+                        ((0xffff / Math.log(15 / 260)) *
+                            (Math.log(15) -
+                                Math.log(Math.clamp(15, 260, this.i2[j])))) >>
+                        0
+                    // serial.writeValue('velampl', this.velAmpl)
 
                     // ==== ::speed ====
 
@@ -517,20 +499,22 @@ namespace bioW_Breath {
 
                     // Log scale
                     this.speed =
-                        (100 / Math.log(20)) *
-                        Math.log(20 / Math.clamp(1, 20, this.d2[j]))
+                        (0xffff -
+                            (0xffff / Math.log(20)) *
+                                Math.log(Math.clamp(1, 20, this.d2[j]))) >>
+                        0
                     // serial.writeValue('speed', this.speed)
 
                     // ==== ::radio ====
 
                     // Send over radio
-                    const buffer = pins.createBuffer(24)
-                    buffer.setNumber(NumberFormat.Float32LE, 0, this.position)
-                    buffer.setNumber(NumberFormat.Float32LE, 4, this.amplitude)
-                    buffer.setNumber(NumberFormat.Float32LE, 8, this.velocity)
-                    buffer.setNumber(NumberFormat.Float32LE, 12, this.intensity)
-                    buffer.setNumber(NumberFormat.Float32LE, 16, this.direction)
-                    buffer.setNumber(NumberFormat.Float32LE, 20, this.speed)
+                    const buffer = pins.createBuffer(12)
+                    buffer.setNumber(NumberFormat.UInt16LE, 0, this.position)
+                    buffer.setNumber(NumberFormat.UInt16LE, 2, this.posAmpl)
+                    buffer.setNumber(NumberFormat.UInt16LE, 4, this.velocity)
+                    buffer.setNumber(NumberFormat.UInt16LE, 6, this.velAmpl)
+                    buffer.setNumber(NumberFormat.UInt16LE, 8, this.direction)
+                    buffer.setNumber(NumberFormat.UInt16LE, 10, this.speed)
                     radio.sendBuffer(buffer)
 
                     t += period
