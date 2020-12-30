@@ -570,14 +570,13 @@ namespace bioW_Motor {
                     Math.max(0, 0x7fff - breath.velocity) << 1,
                     0x1000
                 )
-            case SpeedMaps.PhysicalSimulation: //curr
+            case SpeedMaps.PhysicalSimulation:
                 let s = scaleSpeed(
                     Math.max(0, 0x7fff - breath.velocity) << 1,
-                    0x1000
+                    0x1700
                 )
-                s = Math.max(s, breath.motorSpeed)
-                breath.motorSpeed = s * 0.97
-                return s
+                s = Math.max(s, breath.motorSpeed) * 0.97
+                return (breath.motorSpeed = s < 10 ? 0 : s)
         }
     }
 
