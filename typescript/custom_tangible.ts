@@ -1,29 +1,12 @@
 /**
- * Custom blocks for the BioWearable workshop.
- *
- *   ::bt:top
- *     ::bt:create
- *     ::bt:class
- *     ::bt:setspeed
- *   ::display
- *     ::maps:length
- *     ::maps:color
- *     ::maps:brightness
- *     ::display:create
- *     ::display:class
- *     ::display:maps
- *     ::display:do
- *   ::motor
- *     ::maps:speed
- *     ::maps:direction
- *     ::motor:class
+ * Custom blocks for the pinwheel and display.
  */
 
 // ==== ::bt:top ====
 
 //% weight=200
 //% color=#F7931E
-//% icon="\uf012" signal (same as generic Bluetooth)
+//% icon="\uf012"
 
 namespace bioW_Bluetooth {
     // ==== ::bt:create ====
@@ -66,10 +49,16 @@ namespace bioW_Bluetooth {
         timeAtFreqChange: number = 0
         phaseAtFreqChange: number = 0
 
+        onTargetTime: number = 0
+        lastTime: number = 0
+        motorSpeed: number = 0
+        lastReceived: number = 0
+
         constructor() {
             this.setFrequency(8)
             radio.setGroup(0)
             radio.onReceivedBuffer((buffer) => {
+                this.lastReceived = control.millis()
                 const prevDirection = this.direction
                 this.position = buffer.getNumber(NumberFormat.UInt16LE, 0)
                 this.velocity = buffer.getNumber(NumberFormat.UInt16LE, 4)
@@ -92,11 +81,23 @@ namespace bioW_Bluetooth {
             )
         }
 
-        updateTarget(): void {
+        update(): void {
             const time = control.millis()
             const phase = this.getPhase(time)
             this.targetPosition = ((Math.sin(phase) + 1) * 0x7fff) >> 0
             this.targetVelocity = ((Math.cos(phase) + 1) * 0x7fff) >> 0
+            basic.clearScreen()
+            const pattern =
+                control.millis() - this.lastReceived < 1000
+                    ? 33080895
+                    : 18157905
+            for (let i = 0; i < 25; i++) {
+                led.plotBrightness(
+                    i % 5,
+                    Math.idiv(i, 5),
+                    ((pattern >> i) & 1) << 8
+                )
+            }
         }
 
         // ==== ::bt:setspeed ====
@@ -142,10 +143,6 @@ namespace bioW_Display {
         TargetPositionRandomSpeed
     }
 
-    // @todo
-    let onTargetTime = 0
-    let lastTime = 0
-
     function mapToLength(
         lengthMapId: LengthMaps,
         breath: bioW_Bluetooth.BreathData
@@ -169,13 +166,13 @@ namespace bioW_Display {
             case LengthMaps.TargetPositionRandomSpeed:
                 const time = control.millis()
                 if (Math.abs(breath.speed - breath.targetSpeed) < 6500) {
-                    onTargetTime += time - lastTime
-                    if (onTargetTime >= 5000) {
-                        onTargetTime = 0
+                    breath.onTargetTime += time - breath.lastTime
+                    if (breath.onTargetTime >= 5000) {
+                        breath.onTargetTime = 0
                         breath.setFrequency(Math.random() * 26 + 4)
                     }
                 }
-                lastTime = time
+                breath.lastTime = time
                 return breath.targetPosition
         }
     }
@@ -217,7 +214,7 @@ namespace bioW_Display {
         d = Math.abs(d)
         if (d <= radius) {
             return 0x00ff00
-        } else if (d <= 2 * radius) {
+        } else if (d <= radius << 1) {
             return 0x0000ff
         } else {
             return 0xff0000
@@ -374,11 +371,9 @@ namespace bioW_Display {
         ): void {
             this.breath = breath
             this.draw = () => {
-                const radius = (mapToLength(lengthMapId, this.breath) >> 14) + 1
-                const color = mapToColor(colorMapId, this.breath)
-                this.setBrightness(
-                    mapToBrightness(brightnessMapId, this.breath)
-                )
+                const radius = (mapToLength(lengthMapId, breath) >> 14) + 1
+                const color = mapToColor(colorMapId, breath)
+                this.setBrightness(mapToBrightness(brightnessMapId, breath))
                 this.clear()
                 for (let n = 0, x = -3.5; x < 4; x++) {
                     for (let y = -3.5; y < 4; y++, n++) {
@@ -405,11 +400,9 @@ namespace bioW_Display {
             this.breath = breath
             this.draw = () => {
                 const length =
-                    ((mapToLength(lengthMapId, this.breath) >> 13) << 3) + 8
-                const color = mapToColor(colorMapId, this.breath)
-                this.setBrightness(
-                    mapToBrightness(brightnessMapId, this.breath)
-                )
+                    ((mapToLength(lengthMapId, breath) >> 13) << 3) + 8
+                const color = mapToColor(colorMapId, breath)
+                this.setBrightness(mapToBrightness(brightnessMapId, breath))
                 this.clear()
                 for (let n = 2; n < length; ) {
                     this.setPixelColor(n, color)
@@ -435,14 +428,12 @@ namespace bioW_Display {
             this.breath = breath
             this.draw = () => {
                 const length1 =
-                    ((mapToLength(lengthMapId1, this.breath) >> 13) << 3) + 8
+                    ((mapToLength(lengthMapId1, breath) >> 13) << 3) + 8
                 const length2 =
-                    ((mapToLength(lengthMapId2, this.breath) >> 13) << 3) + 8
-                const color1 = mapToColor(colorMapId1, this.breath)
-                const color2 = mapToColor(colorMapId2, this.breath)
-                this.setBrightness(
-                    mapToBrightness(brightnessMapId, this.breath)
-                )
+                    ((mapToLength(lengthMapId2, breath) >> 13) << 3) + 8
+                const color1 = mapToColor(colorMapId1, breath)
+                const color2 = mapToColor(colorMapId2, breath)
+                this.setBrightness(mapToBrightness(brightnessMapId, breath))
                 this.clear()
                 for (let n = 5; n < length1; ) {
                     this.setPixelColor(n, color1)
@@ -471,11 +462,9 @@ namespace bioW_Display {
             const pattern =
                 'STLKJRZ[\\]UMEDCBAIQYabcdef^VNF>=<;:98@HPX`hijklmnog_WOG?76543210'
             this.draw = () => {
-                const length = (mapToLength(lengthMapId, this.breath) >> 10) + 1
-                const color = mapToColor(colorMapId, this.breath)
-                this.setBrightness(
-                    mapToBrightness(brightnessMapId, this.breath)
-                )
+                const length = (mapToLength(lengthMapId, breath) >> 10) + 1
+                const color = mapToColor(colorMapId, breath)
+                this.setBrightness(mapToBrightness(brightnessMapId, breath))
                 this.clear()
                 for (let i = 0; i < length; i++) {
                     this.setPixelColor(pattern.charCodeAt(i) - 48, color)
@@ -492,7 +481,7 @@ namespace bioW_Display {
         //% weight=200
 
         drawMapping() {
-            this.breath.updateTarget()
+            this.breath.update()
             this.draw()
         }
     }
@@ -508,6 +497,9 @@ namespace bioW_Motor {
     // ==== ::maps:speed ====
     export enum SpeedMaps {
         Off,
+        Slow,
+        Medium,
+        Fast,
         Strength,
         Speed,
         //% block="Target depth"
@@ -518,51 +510,88 @@ namespace bioW_Motor {
         TargetSpeedSlow,
         //% block="Target speed fast"
         TargetSpeedFast,
-        //% block="Change in speed"
-        DeltaSpeed,
         Exhale,
         //% block="Physical simulation"
         PhysicalSimulation
     }
 
-    function scaleSpeed(x: number, alpha: number): number {
-        return (((alpha * x) / 0xffff + 1 - alpha) * x * (82 / 0xffff)) >> 0
+    const speeds = [0, 18, 40, 100]
+
+    function scaleSpeed(x: number, t: number): number {
+        return x < t ? 0 : ((x - t) / (0xffff - t)) ** 2 * 82 + 18
     }
 
-    export function mapToSpeed(
+    function mapToSpeed(
         speedMapId: SpeedMaps,
         breath: bioW_Bluetooth.BreathData
     ): number {
-        // @curr
         switch (speedMapId) {
             default:
             case SpeedMaps.Off:
-                return 0
+            case SpeedMaps.Slow:
+            case SpeedMaps.Medium:
+            case SpeedMaps.Fast:
+                return speeds[speedMapId]
             case SpeedMaps.Strength:
-                let d = Math.abs(breath.velocity - 0x7fff)
-                if (d < 0.1 * 0xffff) {
-                    return 0
-                } else {
-                    return ((d - 0.1 * 0xffff) * 82) / 0x7fff + 18
-                }
+                return scaleSpeed(
+                    Math.abs(breath.velocity - 0x7fff) << 1,
+                    0x1000
+                )
             case SpeedMaps.Speed:
-                return ((breath.speed * 82) >> 16) + 18
+                return scaleSpeed(breath.speed, 0)
             case SpeedMaps.TargetPosition:
-                let distance = Math.abs(breath.position - breath.targetPosition)
-                return Math.clamp(16, 100, 100 - 1.5 * scaleSpeed(distance, -1))
+                return scaleSpeed(
+                    Math.max(
+                        0,
+                        0xffff -
+                            (Math.abs(
+                                breath.position - breath.targetPosition
+                            ) <<
+                                1)
+                    ),
+                    0
+                )
             case SpeedMaps.TargetVelocity:
-                distance = Math.abs(breath.velocity - breath.targetVelocity)
-                serial.writeValue('x', 0)
-                return Math.clamp(16, 100, 100 - 1.5 * scaleSpeed(distance, -1))
-            case SpeedMaps.TargetSpeedSlow: // stop on target
-                distance = Math.abs(breath.speed - breath.targetSpeed)
-                return ((0xffff - distance) * 82) >> (16 + 18)
-            case SpeedMaps.TargetSpeedFast: // high on target
-                return 0
+                return scaleSpeed(
+                    Math.max(
+                        0,
+                        0xffff -
+                            (Math.abs(
+                                breath.velocity - breath.targetVelocity
+                            ) <<
+                                1)
+                    ),
+                    0
+                )
+            case SpeedMaps.TargetSpeedSlow:
+                return scaleSpeed(
+                    Math.min(
+                        0xffff,
+                        3 * Math.abs(breath.speed - breath.targetSpeed)
+                    ),
+                    0x1000
+                )
+            case SpeedMaps.TargetSpeedFast:
+                return scaleSpeed(
+                    Math.max(
+                        0,
+                        0xffff - 3 * Math.abs(breath.speed - breath.targetSpeed)
+                    ),
+                    0
+                )
             case SpeedMaps.Exhale: // velocity on exhale only
-                return 0
+                return scaleSpeed(
+                    Math.max(0, 0x7fff - breath.velocity) << 1,
+                    0x1000
+                )
             case SpeedMaps.PhysicalSimulation: // ramp and fade velocity exhale only
-                return 0
+                let s = scaleSpeed(
+                    Math.max(0, 0x7fff - breath.velocity) << 1,
+                    0x1000
+                )
+                s = Math.max(s, breath.motorSpeed)
+                breath.motorSpeed = s * 0.99
+                return s
         }
     }
 
@@ -599,18 +628,14 @@ namespace bioW_Motor {
             case DirectionMaps.CounterClockwise:
                 return bBoard_Motor.motorDirection.backward
             case DirectionMaps.Strength:
-                return aboveBelow(breath.velocity, 0.4 * 0xffff, 0.6 * 0xffff)
+                return aboveBelow(breath.velocity, 0x5fff, 0x9fff)
             case DirectionMaps.TargetVelocity:
-                return aboveBelow(
-                    breath.targetVelocity,
-                    0.4 * 0xffff,
-                    0.6 * 0xffff
-                )
+                return aboveBelow(breath.targetVelocity, 0x5fff, 0x9fff)
             case DirectionMaps.TargetSpeed:
                 return aboveBelow(
                     breath.speed - breath.targetSpeed,
-                    -0.15 * 0xffff,
-                    0.15 * 0xffff
+                    -0x1000,
+                    0x1000
                 )
         }
     }
@@ -659,7 +684,7 @@ namespace bioW_Motor {
         //% weight=200
 
         run(): void {
-            this.breath.updateTarget()
+            this.breath.update()
             this.motorDutyDirection(
                 mapToSpeed(this.speedMapId, this.breath),
                 mapToDirection(this.directionMapId, this.breath)
