@@ -11,15 +11,6 @@
 namespace bioW_Bluetooth {
     // ==== ::bt ====
 
-    function freqToSpeed(freq: number): number {
-        return (
-            (0xffff -
-                (0xffff / Math.log(20)) *
-                    Math.log(Math.clamp(1, 20, 60 / freq))) >>
-            0
-        )
-    }
-
     //% block="new bluetooth receiver"
     //% blockSetVariable="breath"
     //% group="Create: Receiver"
@@ -44,13 +35,12 @@ namespace bioW_Bluetooth {
         targetFrequency: number = 0
         targetSpeed: number = 0
 
-        timeAtFreqChange: number = 0
-        phaseAtFreqChange: number = 0
-        lastEventTime: number = 0
+        time: number = 0
+        phase: number = 0
+        hasReceived: number = 0
 
         draw: () => void = () => {}
-        onTargetTime: number = 0
-        lastTargetTime: number = 0
+        countOnTarget: number = 0
 
         run: () => void = () => {}
         motorSpeed: number = 0
@@ -60,9 +50,9 @@ namespace bioW_Bluetooth {
             radio.setGroup(0)
 
             radio.onReceivedBuffer((buffer) => {
-                this.lastEventTime = control.millis()
-                const prevDirection = this.direction
+                const newTime = control.millis()
 
+                const prevDirection = this.direction
                 this.position = buffer.getNumber(NumberFormat.UInt16LE, 0)
                 this.velocity = buffer.getNumber(NumberFormat.UInt16LE, 4)
                 this.direction = buffer.getNumber(NumberFormat.UInt16LE, 8)
@@ -73,42 +63,47 @@ namespace bioW_Bluetooth {
                     this.exhales++
                 }
 
-                const phase = this.getPhase(this.lastEventTime)
-                this.targetPosition = ((Math.sin(phase) + 1) * 0x7fff) >> 0
-                this.targetVelocity = ((Math.cos(phase) + 1) * 0x7fff) >> 0
+                this.phase =
+                    (Math.PI / 30000) *
+                        this.targetFrequency *
+                        (newTime - this.time) +
+                    this.phase
+                this.time = newTime
+                this.targetPosition = ((Math.sin(this.phase) + 1) * 0x7fff) >> 0
+                this.targetVelocity = ((Math.cos(this.phase) + 1) * 0x7fff) >> 0
+
                 this.run()
                 this.draw()
+
+                const pattern = 'mnihglqrstojedcbafkpuvwxy'
+                let length = (this.position * 25) >> 16
+                this.drawPattern(pattern, length, 10)
+                length = pattern.charCodeAt(length) - 97
+                led.plotBrightness(length % 5, Math.idiv(length, 5), 255)
+                this.hasReceived = -1
             })
 
             control.inBackground(() => {
                 while (true) {
-                    let length = 9 * (Math.idiv(control.millis(), 800) % 2)
-                    let pattern = 'aegimqsuy'
-                    let brightness = 255
-                    basic.clearScreen()
-                    if (control.millis() - this.lastEventTime < 1000) {
-                        length = (breath.position * 25) >> 16
-                        pattern = 'mnihglqrstojedcbafkpuvwxy'
-                        brightness = 10
-                        const n = pattern.charCodeAt(length) - 97
-                        led.plotBrightness(n % 5, Math.idiv(n, 5), 255)
+                    if (this.hasReceived !== -1) {
+                        this.drawPattern(
+                            'aegimqsuy',
+                            9 * (this.hasReceived % 2),
+                            255
+                        )
                     }
-                    for (let i = 0; i < length; i++) {
-                        const n = pattern.charCodeAt(i) - 97
-                        led.plotBrightness(n % 5, Math.idiv(n, 5), brightness)
-                    }
-                    basic.pause(100)
+                    this.hasReceived++
+                    basic.pause(800)
                 }
             })
         }
 
-        getPhase(time: number): number {
-            return (
-                (Math.PI / 30000) *
-                    this.targetFrequency *
-                    (time - this.timeAtFreqChange) +
-                this.phaseAtFreqChange
-            )
+        drawPattern(pattern: String, length: number, brightness: number) {
+            basic.clearScreen()
+            for (let i = 0; i < length; i++) {
+                const n = pattern.charCodeAt(i) - 97
+                led.plotBrightness(n % 5, Math.idiv(n, 5), brightness)
+            }
         }
 
         //% block="$this(breath)|set the target speed to $freq breaths per minute"
@@ -117,13 +112,12 @@ namespace bioW_Bluetooth {
         //% weight=190
 
         setFrequency(freq: number): void {
-            if (freq !== this.targetFrequency) {
-                const time = control.millis()
-                this.phaseAtFreqChange = this.getPhase(time)
-                this.timeAtFreqChange = time
-                this.targetFrequency = freq
-                this.targetSpeed = freqToSpeed(freq)
-            }
+            this.targetFrequency = freq
+            this.targetSpeed =
+                (0xffff -
+                    (0xffff / Math.log(20)) *
+                        Math.log(Math.clamp(1, 20, 60 / freq))) >>
+                0
         }
     }
 }
@@ -171,15 +165,13 @@ namespace bioW_Display {
             case LengthMaps.TargetSpeed:
                 return breath.targetSpeed
             case LengthMaps.TargetPositionRandomSpeed:
-                const time = control.millis()
-                if (Math.abs(breath.speed - breath.targetSpeed) < 6500) {
-                    breath.onTargetTime += time - breath.lastTargetTime
-                    if (breath.onTargetTime >= 5000) {
-                        breath.onTargetTime = 0
+                if (Math.abs(breath.speed - breath.targetSpeed) < 0x1000) {
+                    breath.countOnTarget++
+                    if (breath.countOnTarget >= 50) {
+                        breath.countOnTarget = 0
                         breath.setFrequency(Math.random() * 26 + 4)
                     }
                 }
-                breath.lastTargetTime = time
                 return breath.targetPosition
         }
     }
@@ -266,7 +258,7 @@ namespace bioW_Display {
             case ColorMaps.Exhale:
                 return rgb[breath.exhales % 3]
             case ColorMaps.CycleAll:
-                const h = (control.millis() / 20 + 60) % 360
+                const h = (breath.time / 20 + 60) % 360
                 const x = Math.idiv(Math.abs((h % 120) - 60) * 255, 60)
                 const alpha = (2 - Math.idiv(h, 120)) << 3
                 const beta = Math.idiv(h % 180, 60) << 3
