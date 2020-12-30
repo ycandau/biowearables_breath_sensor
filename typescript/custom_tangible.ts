@@ -9,9 +9,9 @@
 //% icon="\uf012"
 
 namespace bioW_Bluetooth {
-    // ==== ::bt:create ====
+    // ==== ::bt ====
 
-    export function freqToSpeed(freq: number): number {
+    function freqToSpeed(freq: number): number {
         return (
             (0xffff -
                 (0xffff / Math.log(20)) *
@@ -22,14 +22,12 @@ namespace bioW_Bluetooth {
 
     //% block="new bluetooth receiver"
     //% blockSetVariable="breath"
-    //% group="On start: Receiver"
+    //% group="Create: Receiver"
     //% weight=200
 
     export function createBreathOverBluetooth(): BreathData {
         return new BreathData()
     }
-
-    // ==== ::bt:class ====
 
     export class BreathData {
         position: number = 0x7fff
@@ -48,18 +46,23 @@ namespace bioW_Bluetooth {
 
         timeAtFreqChange: number = 0
         phaseAtFreqChange: number = 0
+        lastEventTime: number = 0
 
+        draw: () => void = () => {}
         onTargetTime: number = 0
-        lastTime: number = 0
+        lastTargetTime: number = 0
+
+        run: () => void = () => {}
         motorSpeed: number = 0
-        lastReceived: number = 0
 
         constructor() {
             this.setFrequency(8)
             radio.setGroup(0)
+
             radio.onReceivedBuffer((buffer) => {
-                this.lastReceived = control.millis()
+                this.lastEventTime = control.millis()
                 const prevDirection = this.direction
+
                 this.position = buffer.getNumber(NumberFormat.UInt16LE, 0)
                 this.velocity = buffer.getNumber(NumberFormat.UInt16LE, 4)
                 this.direction = buffer.getNumber(NumberFormat.UInt16LE, 8)
@@ -68,6 +71,33 @@ namespace bioW_Bluetooth {
                     this.inhales++
                 } else if (this.direction === 0 && prevDirection !== 0) {
                     this.exhales++
+                }
+
+                const phase = this.getPhase(this.lastEventTime)
+                this.targetPosition = ((Math.sin(phase) + 1) * 0x7fff) >> 0
+                this.targetVelocity = ((Math.cos(phase) + 1) * 0x7fff) >> 0
+                this.run()
+                this.draw()
+            })
+
+            control.inBackground(() => {
+                while (true) {
+                    let length = 9 * (Math.idiv(control.millis(), 800) % 2)
+                    let pattern = 'aegimqsuy'
+                    let brightness = 255
+                    basic.clearScreen()
+                    if (control.millis() - this.lastEventTime < 1000) {
+                        length = (breath.position * 25) >> 16
+                        pattern = 'mnihglqrstojedcbafkpuvwxy'
+                        brightness = 10
+                        const n = pattern.charCodeAt(length) - 97
+                        led.plotBrightness(n % 5, Math.idiv(n, 5), 255)
+                    }
+                    for (let i = 0; i < length; i++) {
+                        const n = pattern.charCodeAt(i) - 97
+                        led.plotBrightness(n % 5, Math.idiv(n, 5), brightness)
+                    }
+                    basic.pause(100)
                 }
             })
         }
@@ -81,33 +111,12 @@ namespace bioW_Bluetooth {
             )
         }
 
-        update(): void {
-            const time = control.millis()
-            const phase = this.getPhase(time)
-            this.targetPosition = ((Math.sin(phase) + 1) * 0x7fff) >> 0
-            this.targetVelocity = ((Math.cos(phase) + 1) * 0x7fff) >> 0
-            basic.clearScreen()
-            const pattern =
-                control.millis() - this.lastReceived < 1000
-                    ? 33080895
-                    : 18157905
-            for (let i = 0; i < 25; i++) {
-                led.plotBrightness(
-                    i % 5,
-                    Math.idiv(i, 5),
-                    ((pattern >> i) & 1) << 8
-                )
-            }
-        }
-
-        // ==== ::bt:setspeed ====
-
         //% block="$this(breath)|set the target speed to $freq breaths per minute"
-        //% freq.min=2 freq.max=60 freq.defl=12
-        //% group="On start: Set target speed"
+        //% freq.min=2 freq.max=60 freq.defl=8
+        //% group="Set target speed"
         //% weight=190
 
-        setFrequency(freq: number = 8): void {
+        setFrequency(freq: number): void {
             if (freq !== this.targetFrequency) {
                 const time = control.millis()
                 this.phaseAtFreqChange = this.getPhase(time)
@@ -119,14 +128,12 @@ namespace bioW_Bluetooth {
     }
 }
 
-// ==== ::display:top ====
-
 //% weight=170
 //% color=#F7931E
-//% icon="\uf110" spinner (same as generic Neopixel)
+//% icon="\uf110"
 
 namespace bioW_Display {
-    // ==== ::maps:length ====
+    // ==== ::maplength ====
 
     export enum LengthMaps {
         On,
@@ -144,10 +151,10 @@ namespace bioW_Display {
     }
 
     function mapToLength(
-        lengthMapId: LengthMaps,
+        lenMapId: LengthMaps,
         breath: bioW_Bluetooth.BreathData
     ): number {
-        switch (lengthMapId) {
+        switch (lenMapId) {
             default:
             case LengthMaps.On:
                 return 0xffff
@@ -166,18 +173,18 @@ namespace bioW_Display {
             case LengthMaps.TargetPositionRandomSpeed:
                 const time = control.millis()
                 if (Math.abs(breath.speed - breath.targetSpeed) < 6500) {
-                    breath.onTargetTime += time - breath.lastTime
+                    breath.onTargetTime += time - breath.lastTargetTime
                     if (breath.onTargetTime >= 5000) {
                         breath.onTargetTime = 0
                         breath.setFrequency(Math.random() * 26 + 4)
                     }
                 }
-                breath.lastTime = time
+                breath.lastTargetTime = time
                 return breath.targetPosition
         }
     }
 
-    // ==== ::maps:color ====
+    // ==== ::mapcolor ====
 
     export enum ColorMaps {
         Red = 0,
@@ -222,16 +229,16 @@ namespace bioW_Display {
     }
 
     function mapToColor(
-        colorMapId: ColorMaps,
+        colMapId: ColorMaps,
         breath: bioW_Bluetooth.BreathData
     ): number {
-        switch (colorMapId) {
+        switch (colMapId) {
             default:
-                colorMapId = 0
+                colMapId = 0
             case ColorMaps.Red:
             case ColorMaps.Green:
             case ColorMaps.Blue:
-                return rgb[colorMapId]
+                return rgb[colMapId]
             case ColorMaps.Depth:
                 return colorAboveBelow(breath.position, 0x5fff, 0x9fff)
             case ColorMaps.Strength:
@@ -267,7 +274,7 @@ namespace bioW_Display {
         }
     }
 
-    // ==== ::maps:brightness ====
+    // ==== ::mapbrightness ====
 
     export enum BrightnessMaps {
         Low,
@@ -287,10 +294,10 @@ namespace bioW_Display {
     }
 
     function mapToBrightness(
-        brightnessMapId: BrightnessMaps,
+        brightMapId: BrightnessMaps,
         breath: bioW_Bluetooth.BreathData
     ): number {
-        switch (brightnessMapId) {
+        switch (brightMapId) {
             default:
             case BrightnessMaps.Low:
                 return 10
@@ -316,185 +323,164 @@ namespace bioW_Display {
         }
     }
 
-    // ==== ::display:create ====
+    // ==== ::display ====
 
     //% block="new display on pin $pin"
     //% pin.defl=neoPin.P16
     //% blockSetVariable=display
-    //% group="On start: Create"
+    //% group="Create: Display"
     //% weight=200
 
-    export function createDisplay(pin: neoPin): Display {
-        return new Display(pin)
+    export function createDisplay(pin: neoPin): neopixel.Strip {
+        return neopixel.createbBoadrAdvStrip(
+            BoardID.zero,
+            ClickID.Zero,
+            pin,
+            64,
+            NeoPixelMode.RGB
+        )
     }
 
-    // ==== ::display:class ====
+    // ==== ::draw ====
 
-    export class Display extends neopixel.Strip {
-        breath: bioW_Bluetooth.BreathData = null
-        draw: () => void = null
+    //% block="map $breath=variables_get(breath)|to fill $display=variables_get(display)|color: $colMapId|brightness: $brightMapId"
+    //% inlineInputMode=inline
+    //% group="Map: Display"
+    //% weight=190
 
-        constructor(pin: neoPin = neoPin.P0) {
-            super(BoardID.zero, ClickID.Zero, pin, 64, NeoPixelMode.RGB)
+    export function mapToFill(
+        breath: bioW_Bluetooth.BreathData,
+        display: neopixel.Strip,
+        colMapId: ColorMaps,
+        brightMapId: BrightnessMaps
+    ): void {
+        breath.draw = () => {
+            display.clear()
+            display.setBrightness(mapToBrightness(brightMapId, breath))
+            display.showColor(mapToColor(colMapId, breath))
         }
+    }
 
-        // ==== ::display:maps ====
+    //% block="map $breath=variables_get(breath)|to disk on $display=variables_get(display)|radius: $lenMapId|color: $colMapId|brightness: $brightMapId"
+    //% inlineInputMode=inline
+    //% group="Map: Display"
+    //% weight=180
 
-        //% block="map $breath=variables_get(breath)|to fill $this(display)|color: $colorMapId|brightness: $brightnessMapId"
-        //% inlineInputMode=inline
-        //% group="On start: Map"
-        //% weight=190
-
-        mapToFill(
-            breath: bioW_Bluetooth.BreathData,
-            colorMapId: ColorMaps,
-            brightnessMapId: BrightnessMaps
-        ): void {
-            this.breath = breath
-            this.draw = () => {
-                this.clear()
-                this.setBrightness(mapToBrightness(brightnessMapId, breath))
-                this.showColor(mapToColor(colorMapId, breath))
-            }
-        }
-
-        //% block="map $breath=variables_get(breath)|to disk on $this(display)|radius: $lengthMapId|color: $colorMapId|brightness: $brightnessMapId"
-        //% inlineInputMode=inline
-        //% group="On start: Map"
-        //% weight=180
-
-        mapToDisk(
-            breath: bioW_Bluetooth.BreathData,
-            lengthMapId: LengthMaps,
-            colorMapId: ColorMaps,
-            brightnessMapId: BrightnessMaps
-        ): void {
-            this.breath = breath
-            this.draw = () => {
-                const radius = (mapToLength(lengthMapId, breath) >> 14) + 1
-                const color = mapToColor(colorMapId, breath)
-                this.setBrightness(mapToBrightness(brightnessMapId, breath))
-                this.clear()
-                for (let n = 0, x = -3.5; x < 4; x++) {
-                    for (let y = -3.5; y < 4; y++, n++) {
-                        if (x * x + y * y <= radius * radius) {
-                            this.setPixelColor(n, color)
-                        }
+    export function mapToDisk(
+        breath: bioW_Bluetooth.BreathData,
+        display: neopixel.Strip,
+        lenMapId: LengthMaps,
+        colMapId: ColorMaps,
+        brightMapId: BrightnessMaps
+    ): void {
+        breath.draw = () => {
+            const radius = (mapToLength(lenMapId, breath) >> 14) + 1
+            const color = mapToColor(colMapId, breath)
+            display.setBrightness(mapToBrightness(brightMapId, breath))
+            display.clear()
+            for (let n = 0, x = -3.5; x < 4; x++) {
+                for (let y = -3.5; y < 4; y++, n++) {
+                    if (x * x + y * y <= radius * radius) {
+                        display.setPixelColor(n, color)
                     }
                 }
-                this.show()
             }
+            display.show()
         }
+    }
 
-        //% block="map $breath=variables_get(breath)|to bar on $this(display)|length: $lengthMapId|color: $colorMapId|brightness: $brightnessMapId"
-        //% inlineInputMode=inline
-        //% group="On start: Map"
-        //% weight=170
+    //% block="map $breath=variables_get(breath)|to bar on $display=variables_get(display)|length: $lenMapId|color: $colMapId|brightness: $brightMapId"
+    //% inlineInputMode=inline
+    //% group="Map: Display"
+    //% weight=170
 
-        mapToBar(
-            breath: bioW_Bluetooth.BreathData,
-            lengthMapId: LengthMaps,
-            colorMapId: ColorMaps,
-            brightnessMapId: BrightnessMaps
-        ): void {
-            this.breath = breath
-            this.draw = () => {
-                const length =
-                    ((mapToLength(lengthMapId, breath) >> 13) << 3) + 8
-                const color = mapToColor(colorMapId, breath)
-                this.setBrightness(mapToBrightness(brightnessMapId, breath))
-                this.clear()
-                for (let n = 2; n < length; ) {
-                    this.setPixelColor(n, color)
-                    n += n % 8 === 5 ? 5 : 1
-                }
-                this.show()
+    export function mapToBar(
+        breath: bioW_Bluetooth.BreathData,
+        display: neopixel.Strip,
+        lenMapId: LengthMaps,
+        colMapId: ColorMaps,
+        brightMapId: BrightnessMaps
+    ): void {
+        breath.draw = () => {
+            const length = ((mapToLength(lenMapId, breath) >> 13) << 3) + 8
+            const color = mapToColor(colMapId, breath)
+            display.setBrightness(mapToBrightness(brightMapId, breath))
+            display.clear()
+            for (let n = 2; n < length; ) {
+                display.setPixelColor(n, color)
+                n += n % 8 === 5 ? 5 : 1
             }
+            display.show()
         }
+    }
 
-        //% block="map $breath=variables_get(breath)|to double bars on $this(display)|length 1: $lengthMapId1|color 1: $colorMapId1|length 2: $lengthMapId2|color 2: $colorMapId2|brightness: $brightnessMapId"
-        // inlineInputMode=inline
-        //% group="On start: Map"
-        //% weight=160
+    //% block="map $breath=variables_get(breath)|to double bars on $display=variables_get(display)|length 1: $lenMapId1|color 1: $colMapId1|length 2: $lenMapId2|color 2: $colMapId2|brightness: $brightMapId"
+    // inlineInputMode=inline
+    //% group="Map: Display"
+    //% weight=160
 
-        mapToDoubleBars(
-            breath: bioW_Bluetooth.BreathData,
-            lengthMapId1: LengthMaps,
-            colorMapId1: ColorMaps,
-            lengthMapId2: LengthMaps,
-            colorMapId2: ColorMaps,
-            brightnessMapId: BrightnessMaps
-        ): void {
-            this.breath = breath
-            this.draw = () => {
-                const length1 =
-                    ((mapToLength(lengthMapId1, breath) >> 13) << 3) + 8
-                const length2 =
-                    ((mapToLength(lengthMapId2, breath) >> 13) << 3) + 8
-                const color1 = mapToColor(colorMapId1, breath)
-                const color2 = mapToColor(colorMapId2, breath)
-                this.setBrightness(mapToBrightness(brightnessMapId, breath))
-                this.clear()
-                for (let n = 5; n < length1; ) {
-                    this.setPixelColor(n, color1)
-                    n += n % 8 === 7 ? 6 : 1
-                }
-                for (let n = 0; n < length2; ) {
-                    this.setPixelColor(n, color2)
-                    n += n % 8 === 2 ? 6 : 1
-                }
-                this.show()
+    export function mapToDoubleBars(
+        breath: bioW_Bluetooth.BreathData,
+        display: neopixel.Strip,
+        lenMapId1: LengthMaps,
+        colMapId1: ColorMaps,
+        lenMapId2: LengthMaps,
+        colMapId2: ColorMaps,
+        brightMapId: BrightnessMaps
+    ): void {
+        breath.draw = () => {
+            const length1 = ((mapToLength(lenMapId1, breath) >> 13) << 3) + 8
+            const length2 = ((mapToLength(lenMapId2, breath) >> 13) << 3) + 8
+            const color1 = mapToColor(colMapId1, breath)
+            const color2 = mapToColor(colMapId2, breath)
+            display.setBrightness(mapToBrightness(brightMapId, breath))
+            display.clear()
+            for (let n = 5; n < length1; ) {
+                display.setPixelColor(n, color1)
+                n += n % 8 === 7 ? 6 : 1
             }
-        }
-
-        //% block="map $breath=variables_get(breath)|to spiral on $this(display)|length: $lengthMapId|color: $colorMapId|brightness: $brightnessMapId"
-        //% inlineInputMode=inline
-        //% group="On start: Map"
-        //% weight=150
-
-        mapToSpiral(
-            breath: bioW_Bluetooth.BreathData,
-            lengthMapId: LengthMaps,
-            colorMapId: ColorMaps,
-            brightnessMapId: BrightnessMaps
-        ): void {
-            this.breath = breath
-            const pattern =
-                'STLKJRZ[\\]UMEDCBAIQYabcdef^VNF>=<;:98@HPX`hijklmnog_WOG?76543210'
-            this.draw = () => {
-                const length = (mapToLength(lengthMapId, breath) >> 10) + 1
-                const color = mapToColor(colorMapId, breath)
-                this.setBrightness(mapToBrightness(brightnessMapId, breath))
-                this.clear()
-                for (let i = 0; i < length; i++) {
-                    this.setPixelColor(pattern.charCodeAt(i) - 48, color)
-                }
-                this.show()
+            for (let n = 0; n < length2; ) {
+                display.setPixelColor(n, color2)
+                n += n % 8 === 2 ? 6 : 1
             }
+            display.show()
         }
+    }
 
-        // ====  ::display:do ====
+    //% block="map $breath=variables_get(breath)|to spiral on $display=variables_get(display)|length: $lenMapId|color: $colMapId|brightness: $brightMapId"
+    //% inlineInputMode=inline
+    //% group="Map: Display"
+    //% weight=150
 
-        //% block="draw mapping from breath to $this(display)"
-        //% inlineInputMode=inline
-        //% group="Forever: Draw"
-        //% weight=200
-
-        drawMapping() {
-            this.breath.update()
-            this.draw()
+    export function mapToSpiral(
+        breath: bioW_Bluetooth.BreathData,
+        display: neopixel.Strip,
+        lenMapId: LengthMaps,
+        colMapId: ColorMaps,
+        brightMapId: BrightnessMaps
+    ): void {
+        const pattern =
+            'STLKJRZ[\\]UMEDCBAIQYabcdef^VNF>=<;:98@HPX`hijklmnog_WOG?76543210'
+        breath.draw = () => {
+            const length = (mapToLength(lenMapId, breath) >> 10) + 1
+            const color = mapToColor(colMapId, breath)
+            display.setBrightness(mapToBrightness(brightMapId, breath))
+            display.clear()
+            for (let i = 0; i < length; i++) {
+                display.setPixelColor(pattern.charCodeAt(i) - 48, color)
+            }
+            display.show()
         }
     }
 }
 
-// ==== ::motor ====
-
 //% weight=160
 //% color=#F7931E
-//% icon="\uf085" cogs
+//% icon="\uf085"
 
 namespace bioW_Motor {
-    // ==== ::maps:speed ====
+    // ==== ::mapspeed ====
+
     export enum SpeedMaps {
         Off,
         Slow,
@@ -515,13 +501,13 @@ namespace bioW_Motor {
         PhysicalSimulation
     }
 
-    const speeds = [0, 18, 40, 100]
+    const constantSpeeds = [0, 18, 40, 100]
 
     function scaleSpeed(x: number, t: number): number {
         return x < t ? 0 : ((x - t) / (0xffff - t)) ** 2 * 82 + 18
     }
 
-    function mapToSpeed(
+    export function mapToSpeed(
         speedMapId: SpeedMaps,
         breath: bioW_Bluetooth.BreathData
     ): number {
@@ -531,7 +517,7 @@ namespace bioW_Motor {
             case SpeedMaps.Slow:
             case SpeedMaps.Medium:
             case SpeedMaps.Fast:
-                return speeds[speedMapId]
+                return constantSpeeds[speedMapId]
             case SpeedMaps.Strength:
                 return scaleSpeed(
                     Math.abs(breath.velocity - 0x7fff) << 1,
@@ -579,23 +565,24 @@ namespace bioW_Motor {
                     ),
                     0
                 )
-            case SpeedMaps.Exhale: // velocity on exhale only
+            case SpeedMaps.Exhale:
                 return scaleSpeed(
                     Math.max(0, 0x7fff - breath.velocity) << 1,
                     0x1000
                 )
-            case SpeedMaps.PhysicalSimulation: // ramp and fade velocity exhale only
+            case SpeedMaps.PhysicalSimulation: //curr
                 let s = scaleSpeed(
                     Math.max(0, 0x7fff - breath.velocity) << 1,
                     0x1000
                 )
                 s = Math.max(s, breath.motorSpeed)
-                breath.motorSpeed = s * 0.99
+                breath.motorSpeed = s * 0.97
                 return s
         }
     }
 
-    // ==== ::maps:direction ====
+    // ==== ::mapdir ====
+
     export enum DirectionMaps {
         Clockwise,
         //% block="Counter-clockwise"
@@ -607,7 +594,7 @@ namespace bioW_Motor {
         TargetSpeed
     }
 
-    function aboveBelow(x: number, low: number, high: number): number {
+    function dirAboveBelow(x: number, low: number, high: number): number {
         if (x < low) {
             return bBoard_Motor.motorDirection.forward
         } else if (x < high) {
@@ -617,22 +604,22 @@ namespace bioW_Motor {
         }
     }
 
-    function mapToDirection(
-        directionMapId: DirectionMaps,
+    export function mapToDirection(
+        dirMapId: DirectionMaps,
         breath: bioW_Bluetooth.BreathData
     ): number {
-        switch (directionMapId) {
+        switch (dirMapId) {
             default:
             case DirectionMaps.Clockwise:
                 return bBoard_Motor.motorDirection.forward
             case DirectionMaps.CounterClockwise:
                 return bBoard_Motor.motorDirection.backward
             case DirectionMaps.Strength:
-                return aboveBelow(breath.velocity, 0x5fff, 0x9fff)
+                return dirAboveBelow(breath.velocity, 0x5fff, 0x9fff)
             case DirectionMaps.TargetVelocity:
-                return aboveBelow(breath.targetVelocity, 0x5fff, 0x9fff)
+                return dirAboveBelow(breath.targetVelocity, 0x5fff, 0x9fff)
             case DirectionMaps.TargetSpeed:
-                return aboveBelow(
+                return dirAboveBelow(
                     breath.speed - breath.targetSpeed,
                     -0x1000,
                     0x1000
@@ -640,55 +627,40 @@ namespace bioW_Motor {
         }
     }
 
+    // ==== ::motor ====
+
     //% block="new motor on $side side"
     //% side.defl=bBoard_Motor.motorDriver.left
     //% blockSetVariable="motor"
-    //% group="On start: Create"
+    //% group="Create: Motor"
     //% weight=200
 
-    export function createMotor(side: bBoard_Motor.motorDriver): Motor {
-        return new Motor(side)
+    export function createMotor(
+        side: bBoard_Motor.motorDriver
+    ): bBoard_Motor.BBOARD_MOTOR {
+        return bBoard_Motor.createMotor(
+            side,
+            BoardID.zero,
+            ClickID.Zero,
+            bBoard_Motor.motorState.enabled
+        )
     }
 
-    // ==== ::motor:class ====
+    //% block="map $breath=variables_get(breath) to run $motor=variables_get(motor)|speed: $speedMapId|direction: $dirMapId"
+    //% inlineInputMode=inline
+    //% group="Map: Motor"
+    //% weight=200
 
-    export class Motor extends bBoard_Motor.BBOARD_MOTOR {
-        breath: bioW_Bluetooth.BreathData = null
-        speedMapId: number = 0
-        directionMapId: number = null
-
-        constructor(
-            side: bBoard_Motor.motorDriver = bBoard_Motor.motorDriver.left
-        ) {
-            super(BoardID.zero, ClickID.Zero, side)
-        }
-
-        //% block="map $breath=variables_get(breath) to run $this(motor)|speed: $speedMapId|direction: $directionMapId"
-        //% inlineInputMode=inline
-        //% group="On start: Map"
-        //% weight=200
-
-        setMapping(
-            breath: bioW_Bluetooth.BreathData,
-            speedMapId: SpeedMaps,
-            directionMapId: DirectionMaps
-        ): void {
-            this.breath = breath
-            this.speedMapId = speedMapId
-            this.directionMapId = directionMapId
-        }
-
-        //% block="run mapping from breath to $this(motor)"
-        //% inlineInputMode=inline
-        //% group="Forever: Run"
-        //% weight=200
-
-        run(): void {
-            this.breath.update()
-            this.motorDutyDirection(
-                mapToSpeed(this.speedMapId, this.breath),
-                mapToDirection(this.directionMapId, this.breath)
+    export function setMotorMap(
+        breath: bioW_Bluetooth.BreathData,
+        motor: bBoard_Motor.BBOARD_MOTOR,
+        speedMapId: SpeedMaps,
+        dirMapId: DirectionMaps
+    ): void {
+        breath.run = () =>
+            motor.motorDutyDirection(
+                mapToSpeed(speedMapId, breath),
+                mapToDirection(dirMapId, breath)
             )
-        }
     }
 }
