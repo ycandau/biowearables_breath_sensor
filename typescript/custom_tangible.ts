@@ -135,9 +135,9 @@ namespace bioW_Display {
         Strength,
         Speed,
         //% block="Target depth"
-        TargetPosition,
+        TargetDepth,
         //% block="Target strength"
-        TargetVelocity,
+        TargetStrength,
         //% block="Target speed"
         TargetSpeed,
         //% block="Target depth random speed"
@@ -158,9 +158,9 @@ namespace bioW_Display {
                 return breath.velocity
             case LengthMaps.Speed:
                 return breath.speed
-            case LengthMaps.TargetPosition:
+            case LengthMaps.TargetDepth:
                 return breath.targetPosition
-            case LengthMaps.TargetVelocity:
+            case LengthMaps.TargetStrength:
                 return breath.targetVelocity
             case LengthMaps.TargetSpeed:
                 return breath.targetSpeed
@@ -186,9 +186,9 @@ namespace bioW_Display {
         Strength,
         Speed,
         //% block="Target depth"
-        TargetPosition,
+        TargetDepth,
         //% block="Target strength"
-        TargetVelocity,
+        TargetStrength,
         //% block="Target speed"
         TargetSpeed,
         Inhale,
@@ -237,12 +237,12 @@ namespace bioW_Display {
                 return colorAboveBelow(breath.velocity, 0x5fff, 0x9fff)
             case ColorMaps.Speed:
                 return colorAboveBelow(breath.speed, 21456, 26338)
-            case ColorMaps.TargetPosition:
+            case ColorMaps.TargetDepth:
                 return colorCloseFar(
                     breath.position - breath.targetPosition,
                     0x2000
                 )
-            case ColorMaps.TargetVelocity:
+            case ColorMaps.TargetStrength:
                 return colorCloseFar(
                     breath.velocity - breath.targetVelocity,
                     0x2000
@@ -276,7 +276,9 @@ namespace bioW_Display {
         Strength,
         Speed,
         //% block="Target depth"
-        TargetPosition,
+        TargetDepth,
+        //% block="Target strength"
+        TargetStrength,
         //% block="Target speed"
         TargetSpeed
     }
@@ -303,8 +305,10 @@ namespace bioW_Display {
                 return scaleToBrightness(breath.velocity)
             case BrightnessMaps.Speed:
                 return scaleToBrightness(0xffff - breath.speed)
-            case BrightnessMaps.TargetPosition:
+            case BrightnessMaps.TargetDepth:
                 return scaleToBrightness(breath.targetPosition)
+            case BrightnessMaps.TargetStrength:
+                return scaleToBrightness(breath.targetVelocity)
             case BrightnessMaps.TargetSpeed:
                 return scaleToBrightness(
                     Math.max(
@@ -335,7 +339,7 @@ namespace bioW_Display {
 
     // ==== ::draw ====
 
-    //% block="map $breath=variables_get(breath)|to fill $display=variables_get(display)|color: $colMapId|brightness: $brightMapId"
+    //% block="map $breath=variables_get(breath)|to draw fill on $display=variables_get(display)|color: $colMapId|brightness: $brightMapId"
     //% inlineInputMode=inline
     //% group="Map: Display"
     //% weight=190
@@ -353,7 +357,7 @@ namespace bioW_Display {
         }
     }
 
-    //% block="map $breath=variables_get(breath)|to disk on $display=variables_get(display)|radius: $lenMapId|color: $colMapId|brightness: $brightMapId"
+    //% block="map $breath=variables_get(breath)|to draw disk on $display=variables_get(display)|radius: $lenMapId|color: $colMapId|brightness: $brightMapId"
     //% inlineInputMode=inline
     //% group="Map: Display"
     //% weight=180
@@ -381,7 +385,7 @@ namespace bioW_Display {
         }
     }
 
-    //% block="map $breath=variables_get(breath)|to bar on $display=variables_get(display)|length: $lenMapId|color: $colMapId|brightness: $brightMapId"
+    //% block="map $breath=variables_get(breath)|to draw bar on $display=variables_get(display)|length: $lenMapId|color: $colMapId|brightness: $brightMapId"
     //% inlineInputMode=inline
     //% group="Map: Display"
     //% weight=170
@@ -406,7 +410,7 @@ namespace bioW_Display {
         }
     }
 
-    //% block="map $breath=variables_get(breath)|to double bars on $display=variables_get(display)|length 1: $lenMapId1|color 1: $colMapId1|length 2: $lenMapId2|color 2: $colMapId2|brightness: $brightMapId"
+    //% block="map $breath=variables_get(breath)|to draw double bars on $display=variables_get(display)|length 1: $lenMapId1|color 1: $colMapId1|length 2: $lenMapId2|color 2: $colMapId2|brightness: $brightMapId"
     // inlineInputMode=inline
     //% group="Map: Display"
     //% weight=160
@@ -439,7 +443,7 @@ namespace bioW_Display {
         }
     }
 
-    //% block="map $breath=variables_get(breath)|to spiral on $display=variables_get(display)|length: $lenMapId|color: $colMapId|brightness: $brightMapId"
+    //% block="map $breath=variables_get(breath)|to draw spiral on $display=variables_get(display)|length: $lenMapId|color: $colMapId|brightness: $brightMapId"
     //% inlineInputMode=inline
     //% group="Map: Display"
     //% weight=150
@@ -478,12 +482,13 @@ namespace bioW_Motor {
         Slow,
         Medium,
         Fast,
+        Depth,
         Strength,
         Speed,
         //% block="Target depth"
-        TargetPosition,
+        TargetDepth,
         //% block="Target strength"
-        TargetVelocity,
+        TargetStrength,
         //% block="Target speed slow"
         TargetSpeedSlow,
         //% block="Target speed fast"
@@ -510,6 +515,8 @@ namespace bioW_Motor {
             case SpeedMaps.Medium:
             case SpeedMaps.Fast:
                 return constantSpeeds[speedMapId]
+            case SpeedMaps.Depth:
+                return scaleSpeed(breath.position, 0)
             case SpeedMaps.Strength:
                 return scaleSpeed(
                     Math.abs(breath.velocity - 0x7fff) << 1,
@@ -517,7 +524,7 @@ namespace bioW_Motor {
                 )
             case SpeedMaps.Speed:
                 return scaleSpeed(breath.speed, 0)
-            case SpeedMaps.TargetPosition:
+            case SpeedMaps.TargetDepth:
                 return scaleSpeed(
                     Math.max(
                         0,
@@ -529,7 +536,7 @@ namespace bioW_Motor {
                     ),
                     0
                 )
-            case SpeedMaps.TargetVelocity:
+            case SpeedMaps.TargetStrength:
                 return scaleSpeed(
                     Math.max(
                         0,
@@ -580,7 +587,7 @@ namespace bioW_Motor {
         CounterClockwise,
         Strength,
         //% block="Target strength"
-        TargetVelocity,
+        TargetStrength,
         //% block="Target speed"
         TargetSpeed
     }
@@ -607,7 +614,7 @@ namespace bioW_Motor {
                 return bBoard_Motor.motorDirection.backward
             case DirectionMaps.Strength:
                 return dirAboveBelow(breath.velocity, 0x5fff, 0x9fff)
-            case DirectionMaps.TargetVelocity:
+            case DirectionMaps.TargetStrength:
                 return dirAboveBelow(breath.targetVelocity, 0x5fff, 0x9fff)
             case DirectionMaps.TargetSpeed:
                 return dirAboveBelow(
