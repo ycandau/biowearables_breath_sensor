@@ -185,12 +185,12 @@ namespace bioW_Display {
         Depth,
         Strength,
         Speed,
-        //% block="Target depth"
-        TargetDepth,
-        //% block="Target strength"
-        TargetStrength,
-        //% block="Target speed"
-        TargetSpeed,
+        //% block="Match target depth"
+        MatchTargetDepth,
+        //% block="Match target strength"
+        MatchTargetStrength,
+        //% block="Match target speed"
+        MatchTargetSpeed,
         Inhale,
         Exhale,
         //% block="Cycle all"
@@ -237,17 +237,17 @@ namespace bioW_Display {
                 return colorAboveBelow(breath.velocity, 0x5fff, 0x9fff)
             case ColorMaps.Speed:
                 return colorAboveBelow(breath.speed, 21456, 26338)
-            case ColorMaps.TargetDepth:
+            case ColorMaps.MatchTargetDepth:
                 return colorCloseFar(
                     breath.position - breath.targetPosition,
                     0x2000
                 )
-            case ColorMaps.TargetStrength:
+            case ColorMaps.MatchTargetStrength:
                 return colorCloseFar(
                     breath.velocity - breath.targetVelocity,
                     0x2000
                 )
-            case ColorMaps.TargetSpeed:
+            case ColorMaps.MatchTargetSpeed:
                 return colorAboveBelow(
                     breath.speed - breath.targetSpeed,
                     -0x1000,
@@ -279,8 +279,8 @@ namespace bioW_Display {
         TargetDepth,
         //% block="Target strength"
         TargetStrength,
-        //% block="Target speed"
-        TargetSpeed
+        //% block="Match target speed"
+        MatchTargetSpeed
     }
 
     function scaleToBrightness(x: number): number {
@@ -309,7 +309,7 @@ namespace bioW_Display {
                 return scaleToBrightness(breath.targetPosition)
             case BrightnessMaps.TargetStrength:
                 return scaleToBrightness(breath.targetVelocity)
-            case BrightnessMaps.TargetSpeed:
+            case BrightnessMaps.MatchTargetSpeed:
                 return scaleToBrightness(
                     Math.max(
                         0,
@@ -485,14 +485,14 @@ namespace bioW_Motor {
         Depth,
         Strength,
         Speed,
-        //% block="Target depth"
-        TargetDepth,
-        //% block="Target strength"
-        TargetStrength,
-        //% block="Target speed slow"
-        TargetSpeedSlow,
-        //% block="Target speed fast"
-        TargetSpeedFast,
+        //% block="Match target depth"
+        MatchTargetDepth,
+        //% block="Match target strength"
+        MatchTargetStrength,
+        //% block="Match target speed slow"
+        MatchTargetSpeedSlow,
+        //% block="Match target speed fast"
+        MatchTargetSpeedFast,
         Exhale,
         //% block="Physical simulation"
         PhysicalSimulation
@@ -524,7 +524,7 @@ namespace bioW_Motor {
                 )
             case SpeedMaps.Speed:
                 return scaleSpeed(breath.speed, 0)
-            case SpeedMaps.TargetDepth:
+            case SpeedMaps.MatchTargetDepth:
                 return scaleSpeed(
                     Math.max(
                         0,
@@ -536,7 +536,7 @@ namespace bioW_Motor {
                     ),
                     0
                 )
-            case SpeedMaps.TargetStrength:
+            case SpeedMaps.MatchTargetStrength:
                 return scaleSpeed(
                     Math.max(
                         0,
@@ -548,7 +548,7 @@ namespace bioW_Motor {
                     ),
                     0
                 )
-            case SpeedMaps.TargetSpeedSlow:
+            case SpeedMaps.MatchTargetSpeedSlow:
                 return scaleSpeed(
                     Math.min(
                         0xffff,
@@ -556,7 +556,7 @@ namespace bioW_Motor {
                     ),
                     0x1000
                 )
-            case SpeedMaps.TargetSpeedFast:
+            case SpeedMaps.MatchTargetSpeedFast:
                 return scaleSpeed(
                     Math.max(
                         0,
@@ -588,8 +588,8 @@ namespace bioW_Motor {
         Strength,
         //% block="Target strength"
         TargetStrength,
-        //% block="Target speed"
-        TargetSpeed
+        //% block="Match target speed"
+        MatchTargetSpeed
     }
 
     function dirAboveBelow(x: number, low: number, high: number): number {
@@ -616,7 +616,7 @@ namespace bioW_Motor {
                 return dirAboveBelow(breath.velocity, 0x5fff, 0x9fff)
             case DirectionMaps.TargetStrength:
                 return dirAboveBelow(breath.targetVelocity, 0x5fff, 0x9fff)
-            case DirectionMaps.TargetSpeed:
+            case DirectionMaps.MatchTargetSpeed:
                 return dirAboveBelow(
                     breath.speed - breath.targetSpeed,
                     -0x1000,
