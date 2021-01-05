@@ -1,25 +1,30 @@
 # FAQ
 
-- [Sensor issues](#sensor-issues)
+- [Issues with the breath sensor](#issues-with-the-breath-sensor)
   - [The sensor is unresponsive](#the-sensor-is-unresponsive)
   - [The sensor is not working well](#the-sensor-is-not-working-well)
   - [Adjusting the boost level](#adjusting-the-boost-level)
   - [The wires or the rubber stretch sensor broke off](#the-wires-or-the-rubber-stretch-sensor-broke-off)
-- [Runtime errors](#runtime-errors)
+- [Issues with the pinwheel and display](#issues-with-the-pinwheel-and-display)
+  - [The pinwheel and display micro:bit is flashing a cross](#the-pinwheel-and-display-microbit-is-flashing-a-cross)
+  - [The pinwheel is hitting the pole of the box](#the-pinwheel-is-hitting-the-pole-of-the-box)
+- [Issues with MakeCode](#issues-with-makecode)
+    - [I can't find some of the mappings](#i-cant-find-some-of-the-mappings)
+- [General issues with the micro:bit](#general-issues-with-the-microbit)
   - [The micro:bit is showing me a sad face and then a number](#the-microbit-is-showing-me-a-sad-face-and-then-a-number)
   - [The micro:bit crashes with error 020](#the-microbit-crashes-with-error-020)
 
 ----
 
-### Sensor issues
+### Issues with the breath sensor
 
 #### *The sensor is unresponsive*
 
 Make sure that the wires and the resistor are well connected to the micro:bit:
 
-- Resistor between pin 2 and pin 3.
+- Resistor between pin 2 and pin 3
 - Red wire on pin 2
-- Black wire on in GND
+- Black wire on GND
 
 @todo photo
 
@@ -31,7 +36,7 @@ The sensor should be worn fairly loose but with no slack. Check that it is neith
 
 The sensor can be adjusted to magnify its signal by changing its `boost level`. This is like adjusting the loudness of a song when you listen to it. Ideally the signal should be neither too loud nor too low.
 
-Press Button A to adjust the `boost level` by cycling through the various setting. You will see a number from 1 to 3 displayed on the micro:bit for a second, to confirm the new level that has been chosen.
+Press Button A to adjust the `boost level` by cycling through the various settings. You will see a number from 1 to 3 displayed on the micro:bit for a second, to confirm the new level that has been chosen.
 
 Use the `Depth` mapping to confirm that the `boost level` is appropriate, neither too high nor too low:
 
@@ -50,7 +55,31 @@ If the wires or the stretch sensor break off, you can use the electrical tape to
 
 ----
 
-### Runtime errors
+### Issues with the pinwheel and display
+
+#### *The pinwheel and display micro:bit is flashing a cross*
+
+The flashing cross indicates that the micro:bit is not receiving any Bluetooth messages from a breath sensor. Make sure that you have another micro:bit up and running with the breath sensor.
+
+@todo photo
+
+#### *The pinwheel is hitting the pole of the box*
+
+First, make sure that the two wooden disks holding the pinwheel are close to the end of the motor shaft, to keep the wings of the pinwheel away from the pole. If necessary slide them forward as needed. Then, if the issue remains you can try bending the paper to get the wings further away.
+
+@todo photo
+
+----
+
+### Issues with MakeCode
+
+#### *I can't find some of the mappings*
+
+Make sure to scroll down to see all the available mappings for each display or motor parameter.
+
+----
+
+### General issues with the micro:bit
 
 #### *The micro:bit is showing me a sad face and then a number*
 
@@ -58,4 +87,4 @@ This is a runtime error. It means that something in the program is wrong, and th
 
 #### *The micro:bit crashes with error 020*
 
-It is running out of memory. Most likely you are doing something that requires memory in a `||forever||` loop. Go back to your program and double check that you don't have a block meant to be used once `||on start||` that is incorrectly placed in a `||forever||` loop. For instance, all the creation blocks should only be placed `||on start||`: `||new breath sensor||`, `||new microbit||`, `||new neopixel||`, `||new motor||`, `||new radio receiver||`...
+The micro:bit is running out of memory. Most likely you have incorrectly placed a block to run in a `||forever||` loop, instead of only once `||on start||`. All BioWearables blocks are meant to be run `||on start||`.
