@@ -50,8 +50,6 @@ namespace bioW_Bluetooth {
             radio.setGroup(0)
 
             radio.onReceivedBuffer((buffer) => {
-                const newTime = control.millis()
-
                 const prevDirection = this.direction
                 this.position = buffer.getNumber(NumberFormat.UInt16LE, 0)
                 this.velocity = buffer.getNumber(NumberFormat.UInt16LE, 4)
@@ -62,47 +60,58 @@ namespace bioW_Bluetooth {
                 } else if (this.direction === 0 && prevDirection !== 0) {
                     this.exhales++
                 }
-
-                this.phase =
-                    (Math.PI / 30000) *
-                        this.targetFrequency *
-                        (newTime - this.time) +
-                    this.phase
-                this.time = newTime
-                this.targetPosition = ((Math.sin(this.phase) + 1) * 0x7fff) >> 0
-                this.targetVelocity = ((Math.cos(this.phase) + 1) * 0x7fff) >> 0
-
-                this.run()
-                this.draw()
-
-                const pattern = 'mnihglqrstojedcbafkpuvwxy'
-                let length = (this.position * 25) >> 16
-                this.drawPattern(pattern, length, 10)
-                length = pattern.charCodeAt(length) - 97
-                led.plotBrightness(length % 5, Math.idiv(length, 5), 255)
-                this.hasReceived = -1
+                this.hasReceived = -5
             })
 
             control.inBackground(() => {
                 while (true) {
-                    if (this.hasReceived !== -1) {
-                        this.drawPattern(
-                            'aegimqsuy',
-                            9 * (this.hasReceived % 2),
-                            255
-                        )
+                    const newTime = control.millis()
+                    this.phase =
+                        (Math.PI / 30000) *
+                            this.targetFrequency *
+                            (newTime - this.time) +
+                        this.phase
+                    this.time = newTime
+                    this.targetPosition =
+                        ((Math.sin(this.phase) + 1) * 0x7fff) >> 0
+                    this.targetVelocity =
+                        ((Math.cos(this.phase) + 1) * 0x7fff) >> 0
+
+                    this.run()
+                    this.draw()
+
+                    basic.clearScreen()
+                    if (this.hasReceived < 0) {
+                        this.drawBar(0, (this.targetPosition * 5) >> 16)
+                        this.drawBar(3, (this.position * 5) >> 16)
+                    } else {
+                        this.drawCross()
                     }
-                    this.hasReceived++
-                    basic.pause(800)
+
+                    this.hasReceived = (this.hasReceived + 1) % 16
+                    basic.pause(this.time + 100 - control.millis())
                 }
             })
         }
 
-        drawPattern(pattern: String, length: number, brightness: number) {
+        drawBar(x: number, length: number): void {
+            length = 4 - length
+            for (let i = 4; i > length; i--) {
+                led.plotBrightness(x, i, 10)
+                led.plotBrightness(x + 1, i, 10)
+            }
+            led.plotBrightness(x, length, 255)
+            led.plotBrightness(x + 1, length, 255)
+        }
+
+        drawCross(): void {
+            const pattern = 'aegimqsuy'
             basic.clearScreen()
-            for (let i = 0; i < length; i++) {
-                const n = pattern.charCodeAt(i) - 97
-                led.plotBrightness(n % 5, Math.idiv(n, 5), brightness)
+            if (this.hasReceived < 8) {
+                for (let i = 0; i < 9; i++) {
+                    const n = pattern.charCodeAt(i) - 97
+                    led.plotBrightness(n % 5, Math.idiv(n, 5), 255)
+                }
             }
         }
 

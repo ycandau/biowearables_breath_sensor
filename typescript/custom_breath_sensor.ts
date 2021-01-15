@@ -32,11 +32,11 @@ namespace bioW_Breath {
     // ==== ::gain ====
 
     export enum GainIds {
-        //% block="1"
+        // block="1"
         G1,
-        //% block="2"
+        // block="2"
         G2,
-        //% block="3"
+        // block="3"
         G3
     }
 
@@ -46,21 +46,24 @@ namespace bioW_Breath {
     // ==== ::maps ====
 
     export enum MapIds {
-        //% block="Depth"
+        // block="Double bars"
+        DoubleBars,
+        // block="Depth"
         Position,
-        //% block="Average depth"
+        // block="Average depth"
         PositionAmpl,
-        //% block="Strength"
+        // block="Strength"
         Velocity,
-        //% block="Average strength"
+        // block="Average strength"
         VelocityAmpl,
-        //% block="Inhale / Exhale"
+        // block="Inhale / Exhale"
         Direction,
-        //% block="Speed"
+        // block="Speed"
         Speed
     }
 
     const mapValues = [
+        drawDoubleBars,
         drawPosition,
         drawPositionAmpl,
         drawVelocity,
@@ -68,7 +71,7 @@ namespace bioW_Breath {
         drawDirection,
         drawSpeed
     ]
-    const mapSymbols = ['A', 'B', 'C', 'D', 'E', 'F']
+    const mapSymbols = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
 
     // ==== ::draw ====
 
@@ -92,6 +95,26 @@ namespace bioW_Breath {
     function drawDot(pattern: String, index: number, brightness: number) {
         const n = pattern.charCodeAt(index) - 97
         led.plotBrightness(n % 5, Math.idiv(n, 5), brightness)
+    }
+
+    function drawBar(x: number, length: number): void {
+        length = 4 - length
+        for (let i = 4; i > length; i--) {
+            led.plotBrightness(x, i, low)
+            led.plotBrightness(x + 1, i, low)
+        }
+        led.plotBrightness(x, length, 255)
+        led.plotBrightness(x + 1, length, 255)
+    }
+
+    // Double bars
+    function drawDoubleBars(breath: BreathSensor): void {
+        basic.clearScreen()
+        drawBar(
+            0,
+            ((Math.cos((Math.PI / 3750) * breath.t_read) + 1) * 2.5) >> 0
+        )
+        drawBar(3, (breath.position * 5) >> 16)
     }
 
     // Position / Depth
@@ -155,25 +178,27 @@ namespace bioW_Breath {
 
     /**
      * Create an object to manage a breath sensor connected to the micro:bit or the b.Board.
-     * @param pin The pin to which the breath sensor is connected.
-     * @param gain The gain level applied to amplify the signal from the sensor.
-     * @param map The map used to display the data from the sensor.
      * @return A new `BreathSensor` object.
      */
 
-    //% block="new breath sensor with a boost level of $gain|mapping the $map"
-    //% gain.defl=GainIds.G1
-    //% map.defl=MapIds.Position
+    // @deactivated
+    // @param pin The pin to which the breath sensor is connected.
+    // @param gain The gain level applied to amplify the signal from the sensor.
+    // @param map The map used to display the data from the sensor.
+
+    //% block="new breath sensor"
+    // block="new breath sensor with a boost level of $gain|mapping the $map"
+    // gain.defl=GainIds.G1
+    // map.defl=MapIds.Position
     //% blockSetVariable="breath"
     //% group="On start: Create"
     //% weight=200
 
-    export function createBreathSensor(
+    export function createBreathSensor(): BreathSensor {
         // pin: AnalogPin = AnalogPin.P2,
-        gain: GainIds = GainIds.G1,
-        map: MapIds = MapIds.Position
-    ): BreathSensor {
-        return new BreathSensor(AnalogPin.P2, gain, map)
+        // gain: GainIds = GainIds.G1,
+        // map: MapIds = MapIds.Position
+        return new BreathSensor(AnalogPin.P2, 0, MapIds.DoubleBars)
     }
 
     /**
@@ -255,15 +280,15 @@ namespace bioW_Breath {
         setGain(id: GainIds): void {
             this.reset()
             this.gainId = id
-            this.pauseDrawUntil = control.millis() + 1000
-            basic.showString(gainSymbols[id])
+            // this.pauseDrawUntil = control.millis() + 1000
+            // basic.showString(gainSymbols[id])
         }
 
         setMap(id: MapIds): void {
             this.mapId = id
             this.draw = mapValues[id]
-            this.pauseDrawUntil = control.millis() + 1000
-            basic.showString(mapSymbols[id])
+            // this.pauseDrawUntil = control.millis() + 1000
+            // basic.showString(mapSymbols[id])
         }
 
         constructor(private pin: AnalogPin, gain: GainIds, map: MapIds) {
@@ -271,15 +296,17 @@ namespace bioW_Breath {
             this.setGain(gain)
             this.setMap(map)
 
+            // @deactivated
             // To change the gain
-            input.onButtonPressed(Button.A, () => {
-                this.setGain((this.gainId + 1) % gainValues.length)
-            })
+            // input.onButtonPressed(Button.A, () => {
+            //     this.setGain((this.gainId + 1) % gainValues.length)
+            // })
 
+            // @deactivated
             // To change the display
-            input.onButtonPressed(Button.B, () => {
-                this.setMap((this.mapId + 1) % mapValues.length)
-            })
+            // input.onButtonPressed(Button.B, () => {
+            //     this.setMap((this.mapId + 1) % mapValues.length)
+            // })
 
             // Start sampling loop
             control.inBackground(() => {
@@ -349,7 +376,7 @@ namespace bioW_Breath {
                     // serial.writeValue("x2", this.x2[j])
 
                     // Scale the position
-                    let s = gainValues[this.gainId] * (this.x2[j] - 6)
+                    let s = gainValues[this.gainId] * (this.x2[j] - 5)
                     this.position =
                         Math.clamp(0, 0xffff, s * 0x01ff + 0x7fff) >> 0
                     // serial.writeValue('position', this.position)
@@ -520,14 +547,12 @@ namespace bioW_Breath {
                     t += period
                 }
 
-                // Draw on micro:bit
-                if (control.millis() > this.pauseDrawUntil) {
-                    this.draw(this)
-                }
-
                 // Update the time and value of the latest reading
                 this.t_read = t_new_read
                 this.x_read = x_new_read
+
+                // Draw on micro:bit
+                this.draw(this)
                 basic.pause(t - control.millis() + this.t_offset)
             }
         }
