@@ -9,6 +9,7 @@
  *  ::draw
  *  ::block:create
  *  ::properties
+ *  ::block:map
  *  ::methods
  *  ::loop
  *  ::position
@@ -45,41 +46,23 @@ namespace bioW_Breath {
 
     // ==== ::maps ====
 
-    export enum MapIds {
-        // block="Double bars"
-        DoubleBars,
+    export enum LengthMapIds {
         // block="Depth"
         Position,
-        // block="Average depth"
-        PositionAmpl,
         // block="Strength"
         Velocity,
-        // block="Average strength"
-        VelocityAmpl,
-        // block="Inhale / Exhale"
-        Direction,
         // block="Speed"
-        Speed
+        Speed,
+        // block="Target depth"
+        TargetPosition
     }
-
-    const mapValues = [
-        drawDoubleBars,
-        drawPosition,
-        drawPositionAmpl,
-        drawVelocity,
-        drawVelocityAmpl,
-        drawDirection,
-        drawSpeed
-    ]
-    const mapSymbols = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
 
     // ==== ::draw ====
 
     const low = 10
 
-    type DrawFunction = (breath: BreathSensor) => void
-
     // Uses a string to define an ordered pattern in the LED matrix
+    // @unused
     function drawPattern(
         pattern: String,
         length: number,
@@ -92,12 +75,9 @@ namespace bioW_Breath {
         }
     }
 
-    function drawDot(pattern: String, index: number, brightness: number) {
-        const n = pattern.charCodeAt(index) - 97
-        led.plotBrightness(n % 5, Math.idiv(n, 5), brightness)
-    }
-
+    // Draw a single bar
     function drawBar(x: number, length: number): void {
+        length = (length * 5) >> 16
         length = 4 - length
         for (let i = 4; i > length; i--) {
             led.plotBrightness(x, i, low)
@@ -105,73 +85,6 @@ namespace bioW_Breath {
         }
         led.plotBrightness(x, length, 255)
         led.plotBrightness(x + 1, length, 255)
-    }
-
-    // Double bars
-    function drawDoubleBars(breath: BreathSensor): void {
-        basic.clearScreen()
-        drawBar(
-            0,
-            ((Math.cos((Math.PI / 3750) * breath.t_read) + 1) * 2.5) >> 0
-        )
-        drawBar(3, (breath.position * 5) >> 16)
-    }
-
-    // Position / Depth
-    const positionPattern = 'mnihglqrstojedcbafkpuvwxy'
-
-    function drawPosition(breath: BreathSensor): void {
-        const length = (breath.position * 25) >> 16
-        drawPattern(positionPattern, length, low)
-        drawDot(positionPattern, length, 255)
-    }
-
-    // Average position / Depth
-    const positionAmplPattern = 'uvwxtojdcbafkp'
-
-    function drawPositionAmpl(breath: BreathSensor): void {
-        const avg = (breath.posAmpl * 11) >> 16
-        drawPattern(positionAmplPattern, 14, low)
-        drawDot(positionAmplPattern, avg, 255)
-    }
-
-    // Velocity / Strength
-    const posVelocityPattern = 'mnsrqpkfabcde'
-    const negVelocityPattern = 'mlghijotyxwvu'
-
-    function drawVelocity(breath: BreathSensor): void {
-        const length = (Math.abs(breath.velocity - 0x7fff) * 13) >> 15
-        const pattern =
-            breath.velocity >= 0x7fff ? posVelocityPattern : negVelocityPattern
-        drawPattern(pattern, length, low)
-        drawDot(pattern, length, 255)
-    }
-
-    // Average velocity / Strength
-    const velocityAmplPattern = 'uvwxytonmlkfabcde'
-
-    function drawVelocityAmpl(breath: BreathSensor): void {
-        const avg = (breath.velAmpl * 17) >> 16
-        drawPattern(velocityAmplPattern, 17, low)
-        drawDot(velocityAmplPattern, avg, 255)
-    }
-
-    // Direction
-    const exhalePattern = 'cghiklmnovx'
-    const inhalePattern = 'abcdeghimuy'
-
-    function drawDirection(breath: BreathSensor): void {
-        const pattern = breath.direction === 0 ? exhalePattern : inhalePattern
-        drawPattern(pattern, 11, 255)
-    }
-
-    // Speed
-    const speedPattern = 'uvwxytonmlkfabcde'
-
-    function drawSpeed(breath: BreathSensor): void {
-        const speed = (breath.speed * 17) >> 16
-        drawPattern(speedPattern, 17, low)
-        drawDot(speedPattern, speed, 255)
     }
 
     // ==== ::block:create ====
@@ -182,23 +95,18 @@ namespace bioW_Breath {
      */
 
     // @deactivated
-    // @param pin The pin to which the breath sensor is connected.
     // @param gain The gain level applied to amplify the signal from the sensor.
-    // @param map The map used to display the data from the sensor.
 
     //% block="new breath sensor"
-    // block="new breath sensor with a boost level of $gain|mapping the $map"
-    // gain.defl=GainIds.G1
-    // map.defl=MapIds.Position
+    // block="new breath sensor with a boost level of $gain"
+    //% gain.defl=GainIds.G1
     //% blockSetVariable="breath"
     //% group="On start: Create"
     //% weight=200
 
     export function createBreathSensor(): BreathSensor {
-        // pin: AnalogPin = AnalogPin.P2,
         // gain: GainIds = GainIds.G1,
-        // map: MapIds = MapIds.Position
-        return new BreathSensor(AnalogPin.P2, 0, MapIds.DoubleBars)
+        return new BreathSensor(AnalogPin.P2, GainIds.G1)
     }
 
     /**
@@ -260,8 +168,33 @@ namespace bioW_Breath {
         zx_down_i = 0 // buffer index
 
         // Draw
-        draw: DrawFunction = drawPosition
-        pauseDrawUntil: number = 0 // pause drawing after button pressed
+        lengthMapId1: LengthMapIds
+        lengthMapId2: LengthMapIds
+        // pauseDrawUntil: number = 0 // pause drawing after button pressed
+
+        // ==== ::block:map ====
+
+        /**
+         * Set the length mappings for the double bar display on the micro:bit.
+         * @param lengthMapId1 The mapping for the length of the first bar.
+         * @param lengthMapId2 The mapping for the length of the second bar.
+         * @return A new `BreathSensor` object.
+         */
+
+        //% block="map $this(breath)|to draw double bars|length 1: $lengthMapId1|length 2: $lengthMapId2"
+        //% lengthMapId1.defl=LengthMapIds.TargetPosition
+        //% lengthMapId2.defl=LengthMapIds.Position
+        //% group="On start: Map"
+        //% inlineInputMode=external
+        //% weight=190
+
+        setLengthMaps(
+            lengthMapId1: LengthMapIds,
+            lengthMapId2: LengthMapIds
+        ): void {
+            this.lengthMapId1 = lengthMapId1
+            this.lengthMapId2 = lengthMapId2
+        }
 
         // ==== ::methods ====
 
@@ -277,36 +210,21 @@ namespace bioW_Breath {
             this.hp_alpha = 0.8 // initial value for adaptive DC offset
         }
 
-        setGain(id: GainIds): void {
+        setGain(gainId: GainIds): void {
             this.reset()
-            this.gainId = id
+            this.gainId = gainId
+            // @deactivated
             // this.pauseDrawUntil = control.millis() + 1000
             // basic.showString(gainSymbols[id])
         }
 
-        setMap(id: MapIds): void {
-            this.mapId = id
-            this.draw = mapValues[id]
-            // this.pauseDrawUntil = control.millis() + 1000
-            // basic.showString(mapSymbols[id])
-        }
-
-        constructor(private pin: AnalogPin, gain: GainIds, map: MapIds) {
+        constructor(private pin: AnalogPin, gainId: GainIds) {
             this.init()
-            this.setGain(gain)
-            this.setMap(map)
-
-            // @deactivated
-            // To change the gain
-            // input.onButtonPressed(Button.A, () => {
-            //     this.setGain((this.gainId + 1) % gainValues.length)
-            // })
-
-            // @deactivated
-            // To change the display
-            // input.onButtonPressed(Button.B, () => {
-            //     this.setMap((this.mapId + 1) % mapValues.length)
-            // })
+            this.setGain(gainId)
+            this.setLengthMaps(
+                LengthMapIds.TargetPosition,
+                LengthMapIds.Position
+            )
 
             // Start sampling loop
             control.inBackground(() => {
@@ -552,7 +470,20 @@ namespace bioW_Breath {
                 this.x_read = x_new_read
 
                 // Draw on micro:bit
-                this.draw(this)
+                const targetPosition =
+                    ((Math.cos((Math.PI / 3750) * this.t_read) + 1) * 0xffff) >>
+                    1
+                const features = [
+                    this.position,
+                    this.velocity,
+                    this.speed,
+                    targetPosition
+                ]
+                basic.clearScreen()
+                drawBar(0, features[this.lengthMapId1])
+                drawBar(3, features[this.lengthMapId2])
+
+                // Pause for remaining time
                 basic.pause(t - control.millis() + this.t_offset)
             }
         }
