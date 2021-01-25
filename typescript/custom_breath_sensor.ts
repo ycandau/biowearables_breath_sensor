@@ -47,13 +47,13 @@ namespace bioW_Breath {
     // ==== ::maps ====
 
     export enum LengthMapIds {
-        // block="Depth"
+        //% block="Depth"
         Position,
-        // block="Strength"
+        //% block="Strength"
         Velocity,
-        // block="Speed"
+        //% block="Speed"
         Speed,
-        // block="Target depth"
+        //% block="Target depth"
         TargetPosition
     }
 
