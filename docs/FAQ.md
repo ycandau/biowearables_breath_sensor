@@ -8,6 +8,8 @@
 - [Issues with the pinwheel and display](#issues-with-the-pinwheel-and-display)
   - [The pinwheel and display micro:bit is flashing a cross](#the-pinwheel-and-display-microbit-is-flashing-a-cross)
   - [The pinwheel is hitting the pole of the box](#the-pinwheel-is-hitting-the-pole-of-the-box)
+  - [The pinwheel is sliding or comes off the motor](#the-pinwheel-is-sliding-or-comes-off-the-motor)
+  - [The pinwheel stopped working after turning the b.Board off](#the-pinwheel-stopped-working-after-turning-the-bboard-off)
 - [Issues with MakeCode](#issues-with-makecode)
     - [I can't find some of the mappings](#i-cant-find-some-of-the-mappings)
 - [General issues with the micro:bit](#general-issues-with-the-microbit)
@@ -68,6 +70,16 @@ The flashing cross indicates that the micro:bit is not receiving any Bluetooth m
 First, make sure that the two wooden disks holding the pinwheel are close to the end of the motor shaft, to keep the wings of the pinwheel away from the pole. If necessary slide them forward as needed. Then, if the issue remains you can try bending the paper to get the wings further away.
 
 @todo photo
+
+#### *The pinwheel is sliding or comes off the motor*
+
+First try pinching the two wooden disks together to hold the sheet of paper tightly. If the disks keep sliding or are coming off the motor, you can use glue between the disks and the paper, and between the various layers of paper, to hold everything together. Do that while all the pieces are on the motor so they remain aligned.
+
+#### *The pinwheel stopped working after turning the b.Board off*
+
+The motor will stop working if the b.Board is turned OFF and ON while the micro:bit is connected over USB. This is because the b.Board is rebooted, but not the micro:bit, as it remains powered over USB.
+
+To reset the micro:bit and get the motor to work again, you can flash it with a new program, or make sure to disconnect the USB cable when you turn the b.Board OFF and ON.
 
 ----
 
