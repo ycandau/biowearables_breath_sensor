@@ -6,6 +6,7 @@ bioW_Display.mapToDoubleBars(
     display,
     bioW_Display.LengthMaps.TargetDepth,
     bioW_Display.ColorMaps.MatchTargetDepth,
+    bioW_Display.BrightnessMaps.Medium,
     bioW_Display.LengthMaps.Depth,
     bioW_Display.ColorMaps.MatchTargetDepth,
     bioW_Display.BrightnessMaps.Medium

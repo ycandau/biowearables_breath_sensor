@@ -128,6 +128,54 @@ namespace bioW_Bluetooth {
                         Math.log(Math.clamp(1, 20, 60 / freq))) >>
                 0
         }
+
+        //% block="get $this(breath) depth"
+        //% advanced=true
+        //% weight=200
+
+        getDepth(): number {
+            return (100 / 0xffff) * this.position
+        }
+
+        //% block="get $this(breath) strength"
+        //% advanced=true
+        //% weight=190
+
+        getStrength(): number {
+            return (100 / 0xffff) * this.velocity
+        }
+
+        //% block="get $this(breath) speed"
+        //% advanced=true
+        //% weight=180
+
+        getSpeed(): number {
+            return (100 / 0xffff) * this.speed
+        }
+
+        //% block="get $this(breath) target depth"
+        //% advanced=true
+        //% weight=170
+
+        getTargetDepth(): number {
+            return (100 / 0xffff) * this.targetPosition
+        }
+
+        //% block="get $this(breath) target strength"
+        //% advanced=true
+        //% weight=160
+
+        getTargetStrength(): number {
+            return (100 / 0xffff) * this.targetVelocity
+        }
+
+        //% block="get $this(breath) target speed"
+        //% advanced=true
+        //% weight=150
+
+        getTargetSpeed(): number {
+            return (100 / 0xffff) * this.targetSpeed
+        }
     }
 }
 
@@ -196,8 +244,6 @@ namespace bioW_Display {
         Speed,
         //% block="Match target depth"
         MatchTargetDepth,
-        //% block="Match target strength"
-        MatchTargetStrength,
         //% block="Match target speed"
         MatchTargetSpeed,
         Inhale,
@@ -249,11 +295,6 @@ namespace bioW_Display {
             case ColorMaps.MatchTargetDepth:
                 return colorCloseFar(
                     breath.position - breath.targetPosition,
-                    0x2000
-                )
-            case ColorMaps.MatchTargetStrength:
-                return colorCloseFar(
-                    breath.velocity - breath.targetVelocity,
                     0x2000
                 )
             case ColorMaps.MatchTargetSpeed:
@@ -419,8 +460,26 @@ namespace bioW_Display {
         }
     }
 
-    //% block="map $breath=variables_get(breath)|to draw double bars on $display=variables_get(display)|length 1: $lenMapId1|color 1: $colMapId1|length 2: $lenMapId2|color 2: $colMapId2|brightness: $brightMapId"
-    // inlineInputMode=inline
+    function fadeRGB(rgb: number, fade: number): number {
+        let r = (rgb >> 16) & 0xff
+        let g = (rgb >> 8) & 0xff
+        let b = (rgb >> 0) & 0xff
+
+        const lum =
+            (Math.max(Math.max(r, g), b) + Math.min(Math.min(r, g), b)) >> 1
+        fade = lum * fade
+        let a = Math.min(lum, 255 - lum)
+        a = a !== 0 ? Math.min(fade, 255 - fade) / a : 0
+        const c = fade - a * lum
+
+        r = (a * r + c) & 0xff
+        g = (a * g + c) & 0xff
+        b = (a * b + c) & 0xff
+
+        return (r << 16) | (g << 8) | b
+    }
+
+    //% block="map $breath=variables_get(breath)|to draw double bars on $display=variables_get(display)|length 1: $lenMapId1|color 1: $colMapId1|brightness 1: $brightMapId1|length 2: $lenMapId2|color 2: $colMapId2|brightness 2: $brightMapId2"
     //% group="Map: Display"
     //% weight=160
 
@@ -429,16 +488,27 @@ namespace bioW_Display {
         display: neopixel.Strip,
         lenMapId1: LengthMaps,
         colMapId1: ColorMaps,
+        brightMapId1: BrightnessMaps,
         lenMapId2: LengthMaps,
         colMapId2: ColorMaps,
-        brightMapId: BrightnessMaps
+        brightMapId2: BrightnessMaps
     ): void {
         breath.draw = () => {
             const length1 = ((mapToLength(lenMapId1, breath) >> 13) << 3) + 8
             const length2 = ((mapToLength(lenMapId2, breath) >> 13) << 3) + 8
-            const color1 = mapToColor(colMapId1, breath)
-            const color2 = mapToColor(colMapId2, breath)
-            display.setBrightness(mapToBrightness(brightMapId, breath))
+            let color1 = mapToColor(colMapId1, breath)
+            let color2 = mapToColor(colMapId2, breath)
+            let brightness1 = mapToBrightness(brightMapId1, breath)
+            let brightness2 = mapToBrightness(brightMapId2, breath)
+
+            if (brightness1 > brightness2 && brightness1 !== 0) {
+                color2 = fadeRGB(color2, brightness2 / brightness1)
+            } else if (brightness2 > brightness1 && brightness2 !== 0) {
+                color1 = fadeRGB(color1, brightness1 / brightness2)
+                brightness1 = brightness2
+            }
+
+            display.setBrightness(brightness1)
             display.clear()
             for (let n = 5; n < length1; ) {
                 display.setPixelColor(n, color1)
@@ -477,6 +547,58 @@ namespace bioW_Display {
             display.show()
         }
     }
+
+    //% block="draw fill on $display=variables_get(display)|color: $color|brightness: $brightness"
+    //% color.shadow=display_color
+    //% brightness.min=0 brightness.max=100 brightness.defl=10
+    //% advanced=true
+    //% weight=190
+
+    export function drawFill(
+        display: neopixel.Strip,
+        color: number,
+        brightness: number
+    ): void {
+        brightness = Math.clamp(0, 255, 0.025 * brightness ** 2 + 5) >> 0
+        display.clear()
+        display.setBrightness(brightness)
+        display.showColor(color)
+    }
+
+    //% block="draw spiral on $display=variables_get(display)|length: $length|color: $color|brightness: $brightness"
+    //% inlineInputMode=inline
+    //% length.min=0 length.max=100 length.defl=10
+    //% color.shadow=display_color
+    //% brightness.min=0 brightness.max=100 brightness.defl=10
+    //% advanced=true
+    //% weight=180
+
+    export function drawSpiral(
+        display: neopixel.Strip,
+        length: number,
+        color: number,
+        brightness: number
+    ): void {
+        const pattern =
+            'STLKJRZ[\\]UMEDCBAIQYabcdef^VNF>=<;:98@HPX`hijklmnog_WOG?76543210'
+        length = Math.clamp(0, 64, 1 + length * 0.64) >> 0
+        brightness = Math.clamp(0, 255, 0.025 * brightness ** 2 + 5) >> 0
+        display.setBrightness(brightness)
+        display.clear()
+        for (let i = 0; i < length; i++) {
+            display.setPixelColor(pattern.charCodeAt(i) - 48, color)
+        }
+        display.show()
+    }
+
+    //% block="$color"
+    //% blockId=display_color
+    //% advanced=true
+    //% weight=180
+
+    export function getColor(color: NeoPixelColors): NeoPixelColors {
+        return color
+    }
 }
 
 //% weight=160
@@ -496,8 +618,6 @@ namespace bioW_Motor {
         Speed,
         //% block="Match target depth"
         MatchTargetDepth,
-        //% block="Match target strength"
-        MatchTargetStrength,
         //% block="Match target speed slow"
         MatchTargetSpeedSlow,
         //% block="Match target speed fast"
@@ -540,18 +660,6 @@ namespace bioW_Motor {
                         0xffff -
                             (Math.abs(
                                 breath.position - breath.targetPosition
-                            ) <<
-                                1)
-                    ),
-                    0
-                )
-            case SpeedMaps.MatchTargetStrength:
-                return scaleSpeed(
-                    Math.max(
-                        0,
-                        0xffff -
-                            (Math.abs(
-                                breath.velocity - breath.targetVelocity
                             ) <<
                                 1)
                     ),
@@ -669,5 +777,31 @@ namespace bioW_Motor {
                 mapToSpeed(speedMapId, breath),
                 mapToDirection(dirMapId, breath)
             )
+    }
+
+    //% block="run $motor=variables_get(motor)|at a speed of $speed|and $direction"
+    //% speed.min=0 speed.max=100 speed.defl=50
+    //% direction.shadow=motor_direction
+    //% advanced=true
+    //% weight=190
+
+    export function runMotor(
+        motor: bBoard_Motor.BBOARD_MOTOR,
+        speed: number,
+        direction: number
+    ): void {
+        speed = Math.clamp(0, 100, speed) >> 0
+        motor.motorDutyDirection(speed, direction)
+    }
+
+    //% block="$direction"
+    //% blockId=motor_direction
+    //% advanced=true
+    //% weight=180
+
+    export function getDirection(
+        direction: bBoard_Motor.motorDirection
+    ): bBoard_Motor.motorDirection {
+        return direction
     }
 }
