@@ -616,6 +616,8 @@ namespace bioW_Motor {
         Depth,
         Strength,
         Speed,
+        //% block="Target depth"
+        TargetDepth,
         //% block="Match target depth"
         MatchTargetDepth,
         //% block="Match target speed slow"
@@ -653,6 +655,8 @@ namespace bioW_Motor {
                 )
             case SpeedMaps.Speed:
                 return scaleSpeed(breath.speed, 0)
+            case SpeedMaps.TargetDepth:
+                return scaleSpeed(breath.targetPosition, 0)
             case SpeedMaps.MatchTargetDepth:
                 return scaleSpeed(
                     Math.max(
