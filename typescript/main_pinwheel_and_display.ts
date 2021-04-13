@@ -1,6 +1,6 @@
 let breath = bioW_Bluetooth.createBreathOverBluetooth()
 breath.setFrequency(8)
-let display = bioW_Display.createDisplay(neoPin.P16)
+let display = bioW_Display.createDisplay(DigitalPin.P16)
 bioW_Display.mapToDoubleBars(
     breath,
     display,
@@ -11,7 +11,7 @@ bioW_Display.mapToDoubleBars(
     bioW_Display.ColorMaps.MatchTargetDepth,
     bioW_Display.BrightnessMaps.Medium
 )
-let motor = bioW_Motor.createMotor(bBoard_Motor.motorDriver.left)
+let motor = bioW_Motor.createMotor()
 bioW_Motor.setMotorMap(
     breath,
     motor,

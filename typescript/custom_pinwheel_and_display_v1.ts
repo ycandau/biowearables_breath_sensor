@@ -52,9 +52,9 @@ namespace bioW_Bluetooth {
             radio.onReceivedBuffer((buffer) => {
                 const prevDirection = this.direction
                 this.position = buffer.getNumber(NumberFormat.UInt16LE, 0)
-                this.velocity = buffer.getNumber(NumberFormat.UInt16LE, 2)
-                this.direction = buffer.getNumber(NumberFormat.UInt16LE, 4)
-                this.speed = buffer.getNumber(NumberFormat.UInt16LE, 6)
+                this.velocity = buffer.getNumber(NumberFormat.UInt16LE, 4)
+                this.direction = buffer.getNumber(NumberFormat.UInt16LE, 8)
+                this.speed = buffer.getNumber(NumberFormat.UInt16LE, 10)
                 if (this.direction === 0xffff && prevDirection !== 0xffff) {
                     this.inhales++
                 } else if (this.direction === 0 && prevDirection !== 0) {
@@ -115,7 +115,7 @@ namespace bioW_Bluetooth {
             }
         }
 
-        //% block="set $this(breath) target speed to $freq breaths per minute"
+        //% block="$this(breath)|set the target speed to $freq breaths per minute"
         //% freq.min=2 freq.max=60 freq.defl=8
         //% group="Set target speed"
         //% weight=190
@@ -129,53 +129,53 @@ namespace bioW_Bluetooth {
                 0
         }
 
-        // block="get $this(breath) depth"
-        // advanced=true
-        // weight=200
+        //% block="get $this(breath) depth"
+        //% advanced=true
+        //% weight=200
 
-        // getDepth(): number {
-        //     return (100 / 0xffff) * this.position
-        // }
+        getDepth(): number {
+            return (100 / 0xffff) * this.position
+        }
 
-        // block="get $this(breath) strength"
-        // advanced=true
-        // weight=190
+        //% block="get $this(breath) strength"
+        //% advanced=true
+        //% weight=190
 
-        // getStrength(): number {
-        //     return (100 / 0xffff) * this.velocity
-        // }
+        getStrength(): number {
+            return (100 / 0xffff) * this.velocity
+        }
 
-        // block="get $this(breath) speed"
-        // advanced=true
-        // weight=180
+        //% block="get $this(breath) speed"
+        //% advanced=true
+        //% weight=180
 
-        // getSpeed(): number {
-        //     return (100 / 0xffff) * this.speed
-        // }
+        getSpeed(): number {
+            return (100 / 0xffff) * this.speed
+        }
 
-        // block="get $this(breath) target depth"
-        // advanced=true
-        // weight=170
+        //% block="get $this(breath) target depth"
+        //% advanced=true
+        //% weight=170
 
-        // getTargetDepth(): number {
-        //     return (100 / 0xffff) * this.targetPosition
-        // }
+        getTargetDepth(): number {
+            return (100 / 0xffff) * this.targetPosition
+        }
 
-        // block="get $this(breath) target strength"
-        // advanced=true
-        // weight=160
+        //% block="get $this(breath) target strength"
+        //% advanced=true
+        //% weight=160
 
-        // getTargetStrength(): number {
-        //     return (100 / 0xffff) * this.targetVelocity
-        // }
+        getTargetStrength(): number {
+            return (100 / 0xffff) * this.targetVelocity
+        }
 
-        // block="get $this(breath) target speed"
-        // advanced=true
-        // weight=150
+        //% block="get $this(breath) target speed"
+        //% advanced=true
+        //% weight=150
 
-        // getTargetSpeed(): number {
-        //     return (100 / 0xffff) * this.targetSpeed
-        // }
+        getTargetSpeed(): number {
+            return (100 / 0xffff) * this.targetSpeed
+        }
     }
 }
 
@@ -372,13 +372,19 @@ namespace bioW_Display {
     // ==== ::display ====
 
     //% block="new display on pin $pin"
-    //% pin.defl=DigitalPin.P16
+    //% pin.defl=neoPin.P16
     //% blockSetVariable=display
     //% group="Create: Display"
     //% weight=200
 
-    export function createDisplay(pin: DigitalPin): neopixel.Strip {
-        return neopixel.create(pin, 64, NeoPixelMode.RGB)
+    export function createDisplay(pin: neoPin): neopixel.Strip {
+        return neopixel.createbBoadrAdvStrip(
+            BoardID.zero,
+            ClickID.Zero,
+            pin,
+            64,
+            NeoPixelMode.RGB
+        )
     }
 
     // ==== ::draw ====
@@ -429,36 +435,10 @@ namespace bioW_Display {
         }
     }
 
-    //% block="map $breath=variables_get(breath)|to draw spiral on $display=variables_get(display)|length: $lenMapId|color: $colMapId|brightness: $brightMapId"
-    //% inlineInputMode=inline
-    //% group="Map: Display"
-    //% weight=170
-
-    export function mapToSpiral(
-        breath: bioW_Bluetooth.BreathData,
-        display: neopixel.Strip,
-        lenMapId: LengthMaps,
-        colMapId: ColorMaps,
-        brightMapId: BrightnessMaps
-    ): void {
-        const pattern =
-            'STLKJRZ[\\]UMEDCBAIQYabcdef^VNF>=<;:98@HPX`hijklmnog_WOG?76543210'
-        breath.draw = () => {
-            const length = (mapToLength(lenMapId, breath) >> 10) + 1
-            const color = mapToColor(colMapId, breath)
-            display.setBrightness(mapToBrightness(brightMapId, breath))
-            display.clear()
-            for (let i = 0; i < length; i++) {
-                display.setPixelColor(pattern.charCodeAt(i) - 48, color)
-            }
-            display.show()
-        }
-    }
-
     //% block="map $breath=variables_get(breath)|to draw bar on $display=variables_get(display)|length: $lenMapId|color: $colMapId|brightness: $brightMapId"
     //% inlineInputMode=inline
     //% group="Map: Display"
-    //% weight=160
+    //% weight=170
 
     export function mapToBar(
         breath: bioW_Bluetooth.BreathData,
@@ -479,8 +459,6 @@ namespace bioW_Display {
             display.show()
         }
     }
-
-    // For distinct brightness settings
 
     function fadeRGB(rgb: number, fade: number): number {
         let r = (rgb >> 16) & 0xff
@@ -503,7 +481,7 @@ namespace bioW_Display {
 
     //% block="map $breath=variables_get(breath)|to draw double bars on $display=variables_get(display)|length 1: $lenMapId1|color 1: $colMapId1|brightness 1: $brightMapId1|length 2: $lenMapId2|color 2: $colMapId2|brightness 2: $brightMapId2"
     //% group="Map: Display"
-    //% weight=150
+    //% weight=160
 
     export function mapToDoubleBars(
         breath: bioW_Bluetooth.BreathData,
@@ -544,59 +522,83 @@ namespace bioW_Display {
         }
     }
 
-    // ==== ::display:more ====
+    //% block="map $breath=variables_get(breath)|to draw spiral on $display=variables_get(display)|length: $lenMapId|color: $colMapId|brightness: $brightMapId"
+    //% inlineInputMode=inline
+    //% group="Map: Display"
+    //% weight=150
 
-    // block="draw fill on $display=variables_get(display)|color: $color|brightness: $brightness"
-    // color.shadow=display_color
-    // brightness.min=0 brightness.max=100 brightness.defl=10
-    // advanced=true
-    // weight=190
+    export function mapToSpiral(
+        breath: bioW_Bluetooth.BreathData,
+        display: neopixel.Strip,
+        lenMapId: LengthMaps,
+        colMapId: ColorMaps,
+        brightMapId: BrightnessMaps
+    ): void {
+        const pattern =
+            'STLKJRZ[\\]UMEDCBAIQYabcdef^VNF>=<;:98@HPX`hijklmnog_WOG?76543210'
+        breath.draw = () => {
+            const length = (mapToLength(lenMapId, breath) >> 10) + 1
+            const color = mapToColor(colMapId, breath)
+            display.setBrightness(mapToBrightness(brightMapId, breath))
+            display.clear()
+            for (let i = 0; i < length; i++) {
+                display.setPixelColor(pattern.charCodeAt(i) - 48, color)
+            }
+            display.show()
+        }
+    }
 
-    // export function drawFill(
-    //     display: neopixel.Strip,
-    //     color: number,
-    //     brightness: number
-    // ): void {
-    //     brightness = Math.clamp(0, 255, 0.025 * brightness ** 2 + 5) >> 0
-    //     display.clear()
-    //     display.setBrightness(brightness)
-    //     display.showColor(color)
-    // }
+    //% block="draw fill on $display=variables_get(display)|color: $color|brightness: $brightness"
+    //% color.shadow=display_color
+    //% brightness.min=0 brightness.max=100 brightness.defl=10
+    //% advanced=true
+    //% weight=190
 
-    // block="draw spiral on $display=variables_get(display)|length: $length|color: $color|brightness: $brightness"
-    // inlineInputMode=inline
-    // length.min=0 length.max=100 length.defl=10
-    // color.shadow=display_color
-    // brightness.min=0 brightness.max=100 brightness.defl=10
-    // advanced=true
-    // weight=180
+    export function drawFill(
+        display: neopixel.Strip,
+        color: number,
+        brightness: number
+    ): void {
+        brightness = Math.clamp(0, 255, 0.025 * brightness ** 2 + 5) >> 0
+        display.clear()
+        display.setBrightness(brightness)
+        display.showColor(color)
+    }
 
-    // export function drawSpiral(
-    //     display: neopixel.Strip,
-    //     length: number,
-    //     color: number,
-    //     brightness: number
-    // ): void {
-    //     const pattern =
-    //         'STLKJRZ[\\]UMEDCBAIQYabcdef^VNF>=<;:98@HPX`hijklmnog_WOG?76543210'
-    //     length = Math.clamp(0, 64, 1 + length * 0.64) >> 0
-    //     brightness = Math.clamp(0, 255, 0.025 * brightness ** 2 + 5) >> 0
-    //     display.setBrightness(brightness)
-    //     display.clear()
-    //     for (let i = 0; i < length; i++) {
-    //         display.setPixelColor(pattern.charCodeAt(i) - 48, color)
-    //     }
-    //     display.show()
-    // }
+    //% block="draw spiral on $display=variables_get(display)|length: $length|color: $color|brightness: $brightness"
+    //% inlineInputMode=inline
+    //% length.min=0 length.max=100 length.defl=10
+    //% color.shadow=display_color
+    //% brightness.min=0 brightness.max=100 brightness.defl=10
+    //% advanced=true
+    //% weight=180
 
-    // block="$color"
-    // blockId=display_color
-    // advanced=true
-    // weight=170
+    export function drawSpiral(
+        display: neopixel.Strip,
+        length: number,
+        color: number,
+        brightness: number
+    ): void {
+        const pattern =
+            'STLKJRZ[\\]UMEDCBAIQYabcdef^VNF>=<;:98@HPX`hijklmnog_WOG?76543210'
+        length = Math.clamp(0, 64, 1 + length * 0.64) >> 0
+        brightness = Math.clamp(0, 255, 0.025 * brightness ** 2 + 5) >> 0
+        display.setBrightness(brightness)
+        display.clear()
+        for (let i = 0; i < length; i++) {
+            display.setPixelColor(pattern.charCodeAt(i) - 48, color)
+        }
+        display.show()
+    }
 
-    // export function getColor(color: NeoPixelColors): NeoPixelColors {
-    //     return color
-    // }
+    //% block="$color"
+    //% blockId=display_color
+    //% advanced=true
+    //% weight=180
+
+    export function getColor(color: NeoPixelColors): NeoPixelColors {
+        return color
+    }
 }
 
 //% weight=160
@@ -627,10 +629,10 @@ namespace bioW_Motor {
         PhysicalSimulation
     }
 
-    const constantSpeeds = [0, 22, 40, 100]
+    const constantSpeeds = [0, 18, 40, 100]
 
     function scaleSpeed(x: number, t: number): number {
-        return x < t ? 0 : ((x - t) / (0xffff - t)) ** 2 * 78 + 22
+        return x < t ? 0 : ((x - t) / (0xffff - t)) ** 2 * 82 + 18
     }
 
     export function mapToSpeed(
@@ -713,11 +715,11 @@ namespace bioW_Motor {
 
     function dirAboveBelow(x: number, low: number, high: number): number {
         if (x < low) {
-            return 1
+            return bBoard_Motor.motorDirection.forward
         } else if (x < high) {
-            return 0
+            return bBoard_Motor.motorDirection.brake
         } else {
-            return -1
+            return bBoard_Motor.motorDirection.backward
         }
     }
 
@@ -728,9 +730,9 @@ namespace bioW_Motor {
         switch (dirMapId) {
             default:
             case DirectionMaps.Clockwise:
-                return 1
+                return bBoard_Motor.motorDirection.forward
             case DirectionMaps.CounterClockwise:
-                return -1
+                return bBoard_Motor.motorDirection.backward
             case DirectionMaps.Strength:
                 return dirAboveBelow(breath.velocity, 0x5fff, 0x9fff)
             case DirectionMaps.TargetStrength:
@@ -746,13 +748,21 @@ namespace bioW_Motor {
 
     // ==== ::motor ====
 
-    //% block="new motor"
+    //% block="new motor on $side side"
+    //% side.defl=bBoard_Motor.motorDriver.left
     //% blockSetVariable="motor"
     //% group="Create: Motor"
     //% weight=200
 
-    export function createMotor(): number {
-        return 0
+    export function createMotor(
+        side: bBoard_Motor.motorDriver
+    ): bBoard_Motor.BBOARD_MOTOR {
+        return bBoard_Motor.createMotor(
+            side,
+            BoardID.zero,
+            ClickID.Zero,
+            bBoard_Motor.motorState.enabled
+        )
     }
 
     //% block="map $breath=variables_get(breath) to run $motor=variables_get(motor)|speed: $speedMapId|direction: $dirMapId"
@@ -762,40 +772,40 @@ namespace bioW_Motor {
 
     export function setMotorMap(
         breath: bioW_Bluetooth.BreathData,
-        motor: number,
+        motor: bBoard_Motor.BBOARD_MOTOR,
         speedMapId: SpeedMaps,
         dirMapId: DirectionMaps
     ): void {
         breath.run = () =>
-            bBoard_Motor.motorLeftDuty(
-                mapToSpeed(speedMapId, breath) *
-                    mapToDirection(dirMapId, breath)
+            motor.motorDutyDirection(
+                mapToSpeed(speedMapId, breath),
+                mapToDirection(dirMapId, breath)
             )
     }
 
-    // block="run $motor=variables_get(motor)|at a speed of $speed|and $direction"
-    // speed.min=0 speed.max=100 speed.defl=50
-    // direction.shadow=motor_direction
-    // advanced=true
-    // weight=190
+    //% block="run $motor=variables_get(motor)|at a speed of $speed|and $direction"
+    //% speed.min=0 speed.max=100 speed.defl=50
+    //% direction.shadow=motor_direction
+    //% advanced=true
+    //% weight=190
 
-    // export function runMotor(speed: number, direction: number): void {
-    //     speed = Math.clamp(0, 100, speed) >> 0
-    //     speed =
-    //         direction === bBoard_Motor.motorDirection.forward ? 1
-    //         : direction === bBoard_Motor.motorDirection.backward ? -1
-    //         : 0
-    //     bBoard_Motor.motorLeftDuty(speed)
-    // }
+    export function runMotor(
+        motor: bBoard_Motor.BBOARD_MOTOR,
+        speed: number,
+        direction: number
+    ): void {
+        speed = Math.clamp(0, 100, speed) >> 0
+        motor.motorDutyDirection(speed, direction)
+    }
 
-    // block="$direction"
-    // blockId=motor_direction
-    // advanced=true
-    // weight=180
+    //% block="$direction"
+    //% blockId=motor_direction
+    //% advanced=true
+    //% weight=180
 
-    // export function getDirection(
-    //     direction: bBoard_Motor.motorDirection
-    // ): bBoard_Motor.motorDirection {
-    //     return direction
-    // }
+    export function getDirection(
+        direction: bBoard_Motor.motorDirection
+    ): bBoard_Motor.motorDirection {
+        return direction
+    }
 }
