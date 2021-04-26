@@ -98,6 +98,20 @@ namespace bioW_Breath {
         zx_down = [0, 0, 0] // circular buffer for crossings down
         zx_down_i = 0 // buffer index
 
+        // Temp
+        gain: number = 10
+        offset: number = 0
+
+        //% block="set $this(breath) gain $gain and offset $offset"
+        //% gain.min=1 gain.max=100 gain.defl=10
+        //% offset.min=-50 offset.max=50 offset.defl=0
+        //% weight=190
+
+        setGain(gain: number, offset: number): void {
+            this.gain = gain
+            this.offset = offset
+        }
+
         // ==== ::methods ====
 
         constructor() {
@@ -185,7 +199,10 @@ namespace bioW_Breath {
                         Math.clamp(
                             0,
                             0xffff,
-                            this.x2[j] * 1200 + 0x7fff - 7000
+                            this.x2[j] * 70 * this.gain +
+                                0x7fff -
+                                7000 +
+                                this.offset * 1000
                         ) >> 0
                     // serial.writeValue('pos', this.position)
 
