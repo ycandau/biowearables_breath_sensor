@@ -578,7 +578,7 @@ namespace bioW_Display {
     //     brightness: number
     // ): void {
     //     const pattern =
-    //         'STLKJRZ[\\]UMEDCBAIQYabcdef^VNF>=<;:98@HPX`hijklmnog_WOG?76543210'
+    //         "STLKJRZ[\\]UMEDCBAIQYabcdef^VNF>=<;:98@HPX`hijklmnog_WOG?76543210"
     //     length = Math.clamp(0, 64, 1 + length * 0.64) >> 0
     //     brightness = Math.clamp(0, 255, 0.025 * brightness ** 2 + 5) >> 0
     //     display.setBrightness(brightness)

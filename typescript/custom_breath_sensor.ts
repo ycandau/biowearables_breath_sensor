@@ -18,7 +18,7 @@
 
 //% weight=200
 //% color=#F7931E
-//% icon='\uf08b' sign-out
+//% icon="\uf08b" sign-out
 
 namespace bioW_Breath {
     const period = 100 // sampling period
@@ -44,9 +44,9 @@ namespace bioW_Breath {
      * @return A new `BreathSensor` object.
      */
 
-    //% block='new breath sensor'
-    //% blockSetVariable='breath'
-    //% group='On start: Create'
+    //% block="new breath sensor"
+    //% blockSetVariable="breath"
+    //% group="On start: Create"
     //% weight=200
 
     export function createBreathSensor(): BreathSensor {
@@ -128,13 +128,13 @@ namespace bioW_Breath {
                 // Read analog input
                 const t_new_read = control.millis() - this.t_offset
                 let x_new_read = pins.analogReadPin(AnalogPin.P2)
-                // serial.writeValue('dt', t_new_read - this.t_read)
+                // serial.writeValue("dt", t_new_read - this.t_read)
 
                 x_new_read =
                     x_new_read < 450 || x_new_read > 750
                         ? this.x_read // prevent false contact readings
                         : x_new_read - this.x_offset
-                // serial.writeValue('x_new', x_new_read)
+                // serial.writeValue("x_new", x_new_read)
 
                 // Loop and interpolate through even time points
                 let t = (this.index + 1) * period
@@ -159,7 +159,7 @@ namespace bioW_Breath {
                         ((x_new_read - this.x_read) * (t - this.t_read)) /
                             (t_new_read - this.t_read) +
                         this.x_read
-                    // serial.writeValue('x0', this.x0[i])
+                    // serial.writeValue("x0", this.x0[i])
 
                     // Low-pass filter
                     // Butterworth: 3rd order, wc = 0.3
@@ -171,14 +171,14 @@ namespace bioW_Breath {
                         1.16191748 * this.x1[i_1] -
                         6.95942756e-1 * this.x1[i_2] +
                         1.37761301e-1 * this.x1[i_3]
-                    // serial.writeValue('x1', this.x1[i])
+                    // serial.writeValue("x1", this.x1[i])
 
                     // DC offset
                     // Adaptive high-pass: alpha ramps from 0.8 to 0.995
                     this.x2[j] =
                         this.x1[i] - this.x1[i_1] + this.hp_alpha * this.x2[j_1]
                     this.hp_alpha = 0.8 * this.hp_alpha + 0.2 * 0.995
-                    // serial.writeValue('x2', this.x2[j])
+                    // serial.writeValue("x2", this.x2[j])
 
                     // Scale the position
                     this.position =
@@ -187,7 +187,7 @@ namespace bioW_Breath {
                             0xffff,
                             this.x2[j] * 1200 + 0x7fff - 7000
                         ) >> 0
-                    // serial.writeValue('pos', this.position)
+                    // serial.writeValue("pos", this.position)
 
                     // ==== ::velocity ====
 
@@ -200,12 +200,12 @@ namespace bioW_Breath {
                             (4 / 3) * this.x1[i_3] +
                             (1 / 4) * this.x1[i_4]) *
                         (1000 / period)
-                    // serial.writeValue('dx', this.dx)
+                    // serial.writeValue("dx", this.dx)
 
                     let s = 0.008 * this.dx
                     this.velocity =
                         (0x7fff * (s / Math.sqrt(1 + s ** 2) + 1)) >> 0
-                    // serial.writeValue('vel', this.velocity)
+                    // serial.writeValue("vel", this.velocity)
 
                     // ==== ::direction ====
 
@@ -248,7 +248,7 @@ namespace bioW_Breath {
                             this.zx_up_i = (this.zx_up_i + 2) % 3
                         }
                     }
-                    // serial.writeValue('dir', this.direction)
+                    // serial.writeValue("dir", this.direction)
 
                     // ==== ::speed ====
 
@@ -265,7 +265,7 @@ namespace bioW_Breath {
                                     this.zx_down[(this.zx_down_i + 2) % 3],
                                 this.index - this.zx_down[this.zx_down_i]
                             ))
-                    // serial.writeValue('d1', this.d1[j])
+                    // serial.writeValue("d1", this.d1[j])
 
                     // Low-pass filter
                     // Butterworth: 2nd order, wc = 0.03
@@ -274,7 +274,7 @@ namespace bioW_Breath {
                             (this.d1[j] + 2 * this.d1[j_1] + this.d1[j_2]) +
                         1.86689228 * this.d2[j_1] -
                         8.75214548e-1 * this.d2[j_2]
-                    // serial.writeValue('d2', this.d2[j])
+                    // serial.writeValue("d2", this.d2[j])
 
                     // Log scale
                     this.speed =
@@ -282,7 +282,7 @@ namespace bioW_Breath {
                             (0xffff / Math.log(20)) *
                                 Math.log(Math.clamp(1, 20, this.d2[j]))) >>
                         0
-                    // serial.writeValue('speed', this.speed)
+                    // serial.writeValue("speed", this.speed)
 
                     // ==== ::radio ====
 
